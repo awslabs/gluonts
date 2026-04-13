@@ -124,16 +124,22 @@ def test_copy_dim(name):
         assert univariate_forecast.item_id == forecast.item_id
         assert univariate_forecast.info == forecast.info
 
-        if name == "SampleForecast":
-            assert np.array_equal(
-                univariate_forecast.samples,
-                MULTIVARIATE_FORECASTS[name].samples[:, :, dim],
-            )
-        else:
-            assert np.array_equal(
-                univariate_forecast.forecast_array,
-                MULTIVARIATE_FORECASTS[name].forecast_array[:, :, dim],
-            )
+    if isinstance(forecast, SampleForecast) and isinstance(
+        univariate_forecast, SampleForecast
+    ):
+        assert np.array_equal(
+            univariate_forecast.samples,
+            MULTIVARIATE_FORECASTS[name].samples[:, :, dim],
+        )
+    elif isinstance(forecast, QuantileForecast) and isinstance(
+        univariate_forecast, QuantileForecast
+    ):
+        assert np.array_equal(
+            univariate_forecast.forecast_array,
+            MULTIVARIATE_FORECASTS[name].forecast_array[:, :, dim],
+        )
+    else:
+        raise ValueError("Wrong forecast types")
 
 
 @pytest.mark.parametrize("name", MULTIVARIATE_FORECASTS.keys())
@@ -146,16 +152,22 @@ def test_copy_aggregate(name):
     assert agg_forecast.item_id == forecast.item_id
     assert agg_forecast.info == forecast.info
 
-    if name == "SampleForecast":
+    if isinstance(forecast, SampleForecast) and isinstance(
+        agg_forecast, SampleForecast
+    ):
         assert np.array_equal(
             agg_forecast.samples,
             forecast.samples.sum(axis=2),
         )
-    else:
+    elif isinstance(forecast, QuantileForecast) and isinstance(
+        agg_forecast, QuantileForecast
+    ):
         assert np.array_equal(
             agg_forecast.forecast_array,
             forecast.forecast_array.sum(axis=2),
         )
+    else:
+        raise ValueError("Wrong forecast types")
 
 
 def test_linear_interpolation() -> None:

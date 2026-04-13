@@ -647,9 +647,15 @@ class QuantileForecast(Forecast):
     def copy_aggregate(self, agg_fun: Callable) -> "QuantileForecast":
         if len(self.forecast_array.shape) == 2:
             forecast_array = self.forecast_array
-        else:
+        elif len(self.forecast_array.shape) == 3:
             # Aggregate over target dimension axis
             forecast_array = agg_fun(self.forecast_array, axis=2)
+        else:
+            raise ValueError(
+                "QuantileForecast.copy_aggregate expects forecast_array "
+                "to have rank 2 or 3, but got "
+                f"rank={len(self.forecast_array.shape)}"
+            )
         return QuantileForecast(
             forecast_arrays=forecast_array,
             start_date=self.start_date,

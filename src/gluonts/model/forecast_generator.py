@@ -145,14 +145,14 @@ class QuantileForecastGenerator(ForecastGenerator):
 
             i = -1
             for i, output in enumerate(outputs):
+                # Univariate case:
+                #     (prediction_length, num_quantiles)
+                #     -> (num_quantiles, prediction_length)
+                # Multivariate case:
+                #     (prediction_length, target_dim, num_quantiles)
+                #     -> (num_quantiles, prediction_length, target_dim)
                 forecast_array = np.moveaxis(output, -1, 0)
                 forecast_keys = list(self.quantiles)
-                if self.median_idx is not None:
-                    forecast_array = np.concatenate(
-                        [forecast_array, forecast_array[self.median_idx:self.median_idx+1]],
-                        axis=0,
-                    )
-                    forecast_keys = forecast_keys + ["mean"]
                 yield QuantileForecast(
                     forecast_array,
                     start_date=batch[FieldName.FORECAST_START][i],
