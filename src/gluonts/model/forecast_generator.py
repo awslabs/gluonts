@@ -115,10 +115,6 @@ class QuantileForecastGenerator(ForecastGenerator):
     @validated()
     def __init__(self, quantiles: List[str]) -> None:
         self.quantiles = quantiles
-        self.median_idx = next(
-            (i for i, q in enumerate(quantiles) if float(q) == 0.5),
-            None,
-        )
 
     def __call__(
         self,
