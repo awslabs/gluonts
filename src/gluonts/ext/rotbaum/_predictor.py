@@ -364,14 +364,19 @@ class TreePredictor(RepresentablePredictor):
         This function loads and returns the serialized model.
 
         It loads the predictor class with the serialized arguments. It then
-        loads the trained model list from ``model_list.json``. For backward
-        compatibility with predictors serialized before the pickle->json
-        migration (see PR #3176), it falls back to ``predictor.pkl`` if the
-        JSON file is missing.
+        loads the trained model list from ``model_list.json``.
+
+        Predictors serialized before the pickle->json migration (see
+        PR #3176) wrote ``predictor.pkl`` instead. Loading those legacy
+        artifacts requires passing ``allow_legacy_pickle=True`` as a
+        keyword argument, because pickle deserialization executes
+        arbitrary code and should only be done on trusted files.
         """
 
         predictor = super().deserialize(path)
         assert isinstance(predictor, cls)
+
+        allow_legacy_pickle = bool(kwargs.pop("allow_legacy_pickle", False))
 
         json_path = path / "model_list.json"
         pkl_path = path / "predictor.pkl"
@@ -379,7 +384,19 @@ class TreePredictor(RepresentablePredictor):
         if json_path.exists():
             with json_path.open("r") as fp:
                 predictor.model_list = load_json(fp.read())
-        elif pkl_path.exists():
+            return predictor
+
+        if pkl_path.exists() and not allow_legacy_pickle:
+            raise FileNotFoundError(
+                f"{json_path} not found. A legacy {pkl_path.name} is "
+                "present. Loading it requires explicit opt-in via "
+                "`TreePredictor.deserialize(path, "
+                "allow_legacy_pickle=True)` because pickle executes "
+                "arbitrary code on load; only enable this for files you "
+                "trust."
+            )
+
+        if pkl_path.exists():
             import pickle
             import warnings
 
@@ -392,13 +409,12 @@ class TreePredictor(RepresentablePredictor):
             )
             with pkl_path.open("rb") as f:
                 predictor.model_list = pickle.load(f)
-        else:
-            raise FileNotFoundError(
-                f"Neither {json_path} nor {pkl_path} exists; "
-                "cannot deserialize TreePredictor."
-            )
+            return predictor
 
-        return predictor
+        raise FileNotFoundError(
+            f"Neither {json_path} nor {pkl_path} exists; "
+            "cannot deserialize TreePredictor."
+        )
 
     def explain(
         self, importance_type: str = "gain", percentage: bool = True
