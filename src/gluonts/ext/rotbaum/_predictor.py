@@ -364,13 +364,40 @@ class TreePredictor(RepresentablePredictor):
         This function loads and returns the serialized model.
 
         It loads the predictor class with the serialized arguments. It then
-        loads the trained model list by reading the pickle file.
+        loads the trained model list from ``model_list.json``. For backward
+        compatibility with predictors serialized before the pickle->json
+        migration (see PR #3176), it falls back to ``predictor.pkl`` if the
+        JSON file is missing.
         """
 
         predictor = super().deserialize(path)
         assert isinstance(predictor, cls)
-        with (path / "model_list.json").open("r") as fp:
-            predictor.model_list = load_json(fp.read())
+
+        json_path = path / "model_list.json"
+        pkl_path = path / "predictor.pkl"
+
+        if json_path.exists():
+            with json_path.open("r") as fp:
+                predictor.model_list = load_json(fp.read())
+        elif pkl_path.exists():
+            import pickle
+            import warnings
+
+            warnings.warn(
+                "Loading Rotbaum predictor from the legacy pickle format "
+                f"({pkl_path.name}). Re-run `predictor.serialize(path)` "
+                "to migrate to the JSON format.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            with pkl_path.open("rb") as f:
+                predictor.model_list = pickle.load(f)
+        else:
+            raise FileNotFoundError(
+                f"Neither {json_path} nor {pkl_path} exists; "
+                "cannot deserialize TreePredictor."
+            )
+
         return predictor
 
     def explain(
