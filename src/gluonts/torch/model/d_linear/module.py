@@ -104,8 +104,13 @@ class DLinearModel(nn.Module):
             self.scaler = MeanScaler(keepdim=True)
         elif scaling == "std":
             self.scaler = StdScaler(keepdim=True)
-        else:
+        elif scaling is None:
             self.scaler = NOPScaler(keepdim=True)
+        else:
+            raise ValueError(
+                f"Unknown scaling={scaling!r}; "
+                "expected one of 'mean', 'std', or None."
+            )
 
         self.kernel_size = kernel_size
 

@@ -327,8 +327,13 @@ class TiDEModel(nn.Module):
             self.scaler = MeanScaler(keepdim=True)
         elif scaling == "std":
             self.scaler = StdScaler(keepdim=True)
-        else:
+        elif scaling is None:
             self.scaler = NOPScaler(keepdim=True)
+        else:
+            raise ValueError(
+                f"Unknown scaling={scaling!r}; "
+                "expected one of 'mean', 'std', or None."
+            )
 
         self.args_proj = self.distr_output.get_args_proj(self.distr_hidden_dim)
 
