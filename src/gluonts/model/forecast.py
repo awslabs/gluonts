@@ -26,6 +26,12 @@ from gluonts import maybe
 
 logger = logging.getLogger(__name__)
 
+MEAN_NOT_STORED_MSG = (
+    "The mean prediction is not stored in the forecast data; "
+    "the median is being returned instead. "
+    "This behaviour may change in the future."
+)
+
 
 def _linear_interpolation(
     xs: List[float], ys: List[np.ndarray], x: float
@@ -690,11 +696,9 @@ class QuantileForecast(Forecast):
         """
         if "mean" in self._forecast_dict:
             return self._forecast_dict["mean"]
-        logger.warning(
-            "The mean prediction is not stored in the forecast data; "
-            "the median is being returned instead. "
-            "This behaviour may change in the future."
-        )
+        from gluonts.model.forecast_generator import log_once
+
+        log_once(MEAN_NOT_STORED_MSG)
         return self.quantile("p50")
 
     def dim(self) -> int:
