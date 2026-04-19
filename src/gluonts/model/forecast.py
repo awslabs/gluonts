@@ -698,7 +698,7 @@ class QuantileForecast(Forecast):
             return self._forecast_dict["mean"]
         from gluonts.model.forecast_generator import log_once
 
-        log_once(MEAN_NOT_STORED_MSG)
+        log_once(MEAN_NOT_STORED_MSG, level=logging.WARNING)
         return self.quantile("p50")
 
     def dim(self) -> int:

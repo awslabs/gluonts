@@ -38,10 +38,10 @@ NOT_SAMPLE_BASED_MSG = (
 )
 
 
-def log_once(msg):
+def log_once(msg, level=logging.INFO):
     global LOG_CACHE
     if msg not in LOG_CACHE:
-        logger.info(msg)
+        logger.log(level, msg)
         LOG_CACHE.add(msg)
 
 
