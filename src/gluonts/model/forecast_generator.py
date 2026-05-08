@@ -38,10 +38,10 @@ NOT_SAMPLE_BASED_MSG = (
 )
 
 
-def log_once(msg):
+def log_once(msg, level=logging.INFO):
     global LOG_CACHE
     if msg not in LOG_CACHE:
-        logger.info(msg)
+        logger.log(level, msg)
         LOG_CACHE.add(msg)
 
 
@@ -141,8 +141,15 @@ class QuantileForecastGenerator(ForecastGenerator):
 
             i = -1
             for i, output in enumerate(outputs):
+                # Univariate case:
+                #     (prediction_length, num_quantiles)
+                #     -> (num_quantiles, prediction_length)
+                # Multivariate case:
+                #     (prediction_length, target_dim, num_quantiles)
+                #     -> (num_quantiles, prediction_length, target_dim)
+                forecast_array = np.moveaxis(output, -1, 0)
                 yield QuantileForecast(
-                    output.T,
+                    forecast_array,
                     start_date=batch[FieldName.FORECAST_START][i],
                     item_id=(
                         batch[FieldName.ITEM_ID][i]
