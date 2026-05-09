@@ -26,6 +26,12 @@ from gluonts import maybe
 
 logger = logging.getLogger(__name__)
 
+MEAN_NOT_STORED_MSG = (
+    "The mean prediction is not stored in the forecast data; "
+    "the median is being returned instead. "
+    "This behaviour may change in the future."
+)
+
 
 def _linear_interpolation(
     xs: List[float], ys: List[np.ndarray], x: float
@@ -644,6 +650,26 @@ class QuantileForecast(Forecast):
                 inference_quantile,
             )
 
+    def copy_aggregate(self, agg_fun: Callable) -> "QuantileForecast":
+        if len(self.forecast_array.shape) == 2:
+            forecast_array = self.forecast_array
+        elif len(self.forecast_array.shape) == 3:
+            # Aggregate over target dimension axis
+            forecast_array = agg_fun(self.forecast_array, axis=2)
+        else:
+            raise ValueError(
+                "QuantileForecast.copy_aggregate expects forecast_array "
+                "to have rank 2 or 3, but got "
+                f"rank={len(self.forecast_array.shape)}"
+            )
+        return QuantileForecast(
+            forecast_arrays=forecast_array,
+            start_date=self.start_date,
+            forecast_keys=self.forecast_keys,
+            item_id=self.item_id,
+            info=self.info,
+        )
+
     def copy_dim(self, dim: int) -> "QuantileForecast":
         if len(self.forecast_array.shape) == 2:
             forecast_array = self.forecast_array
@@ -670,11 +696,9 @@ class QuantileForecast(Forecast):
         """
         if "mean" in self._forecast_dict:
             return self._forecast_dict["mean"]
-        logger.warning(
-            "The mean prediction is not stored in the forecast data; "
-            "the median is being returned instead. "
-            "This behaviour may change in the future."
-        )
+        from gluonts.model.forecast_generator import log_once
+
+        log_once(MEAN_NOT_STORED_MSG, level=logging.WARNING)
         return self.quantile("p50")
 
     def dim(self) -> int:
