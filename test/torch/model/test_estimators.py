@@ -40,6 +40,7 @@ from gluonts.torch.model.tide import TiDEEstimator
 from gluonts.torch.model.lag_tst import LagTSTEstimator
 from gluonts.torch.model.tft import TemporalFusionTransformerEstimator
 from gluonts.torch.model.wavenet import WaveNetEstimator
+from gluonts.torch.model.smt import SMTEstimator
 from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
 
 
@@ -67,6 +68,19 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
         lambda dataset: MQF2MultiHorizonEstimator(
             freq=dataset.metadata.freq,
             prediction_length=dataset.metadata.prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda dataset: SMTEstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=dataset.metadata.prediction_length,
+            d_model=8,
+            nhead=2,
+            num_encoder_layers=1,
+            num_decoder_layers=1,
+            num_rnn_layers=1,
+            mem_tokens=2,
             batch_size=4,
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
@@ -228,6 +242,23 @@ def test_estimator_constant_dataset(
         lambda freq, prediction_length: TiDEEstimator(
             freq=freq,
             prediction_length=prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            num_feat_dynamic_real=3,
+            num_feat_static_real=1,
+            num_feat_static_cat=2,
+            cardinality=[2, 2],
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda freq, prediction_length: SMTEstimator(
+            freq=freq,
+            prediction_length=prediction_length,
+            d_model=8,
+            nhead=2,
+            num_encoder_layers=1,
+            num_decoder_layers=1,
+            num_rnn_layers=1,
+            mem_tokens=2,
             batch_size=4,
             num_batches_per_epoch=3,
             num_feat_dynamic_real=3,
