@@ -49,6 +49,8 @@ class SMTLightningModule(pl.LightningModule):
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
         patience: int = 10,
+        dmt: bool = False,
+        dmt_lr: float = 1e-4,
     ) -> None:
         super().__init__()
         self.save_hyperparameters()
@@ -56,14 +58,30 @@ class SMTLightningModule(pl.LightningModule):
         self.lr = lr
         self.weight_decay = weight_decay
         self.patience = patience
+        self.dmt = dmt
+        self.dmt_lr = dmt_lr
         self.inputs = self.model.describe_inputs()
         self.example_input_array = self.inputs.zeros()
 
     def forward(self, *args, **kwargs):
         return self.model(*args, **kwargs)
 
+    def enable_dmt(self, dmt_lr: float) -> None:
+        """
+        Switch to the DMT finetuning phase: freeze the teacher (encoder,
+        decoder, embedding) and train only the recurrent cell on the on-policy
+        drift loss with a small learning rate.
+        """
+        self.dmt = True
+        self.dmt_lr = dmt_lr
+        for param in self.model.parameters():
+            param.requires_grad_(False)
+        for param in self.model.rnn_cell.parameters():
+            param.requires_grad_(True)
+
     def _step(self, batch, prefix: str):
-        losses = self.model.loss(
+        loss_fn = self.model.dmt_loss if self.dmt else self.model.loss
+        losses = loss_fn(
             **select(self.inputs, batch),
             future_observed_values=batch["future_observed_values"],
             future_target=batch["future_target"],
@@ -86,9 +104,13 @@ class SMTLightningModule(pl.LightningModule):
         return self._step(batch, "val")
 
     def configure_optimizers(self):
+        if self.dmt:
+            params, lr = self.model.rnn_cell.parameters(), self.dmt_lr
+        else:
+            params, lr = self.model.parameters(), self.lr
         optimizer = torch.optim.Adam(
-            self.model.parameters(),
-            lr=self.lr,
+            params,
+            lr=lr,
             weight_decay=self.weight_decay,
         )
         monitor = (

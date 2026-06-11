@@ -14,9 +14,12 @@
 from typing import List, Optional, Iterable, Dict, Any
 
 import torch
+import lightning.pytorch as pl
 
 from gluonts.core.component import validated
+from gluonts.env import env
 from gluonts.dataset.common import Dataset
+from gluonts.itertools import Cached
 from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.loader import as_stacked_batches
 from gluonts.itertools import Cyclic
@@ -42,7 +45,10 @@ from gluonts.transform import (
     MissingValueImputation,
     DummyValueImputation,
 )
-from gluonts.torch.model.estimator import PyTorchLightningEstimator
+from gluonts.torch.model.estimator import (
+    PyTorchLightningEstimator,
+    TrainOutput,
+)
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.torch.distributions import DistributionOutput, StudentTOutput
 from gluonts.transform.sampler import InstanceSampler
@@ -106,6 +112,18 @@ class SMTEstimator(PyTorchLightningEstimator):
         Weight of the one-step memory dynamics loss.
     coef_unif
         Weight of the memory uniformity regularizer.
+    dmt_finetune_epochs
+        If ``> 0``, run a DAgger Memory Training (DMT) finetuning phase for
+        this many epochs after the SMT phase: the teacher (encoder/decoder) is
+        frozen and only the recurrent cell is trained, on-policy, to track the
+        teacher's memory trajectory under its own rollout (Kumar & Isola, 2026,
+        Sec. 2.3). This is the full ``SMT -> DMT`` method.
+    dmt_rollout_steps
+        Number of steps the recurrent cell is unrolled during DMT
+        (default: ``prediction_length``, i.e. the deployment horizon). Capped
+        at ``prediction_length``.
+    dmt_lr
+        Learning rate for the DMT finetuning phase (kept small).
     lr
         Learning rate.
     weight_decay
@@ -142,6 +160,9 @@ class SMTEstimator(PyTorchLightningEstimator):
         dropout_rate: float = 0.1,
         coef_dyn: float = 0.1,
         coef_unif: float = 0.001,
+        dmt_finetune_epochs: int = 0,
+        dmt_rollout_steps: Optional[int] = None,
+        dmt_lr: float = 1e-4,
         lr: float = 1e-3,
         weight_decay: float = 1e-8,
         patience: int = 10,
@@ -188,6 +209,9 @@ class SMTEstimator(PyTorchLightningEstimator):
         self.dim_feedforward = dim_feedforward
         self.coef_dyn = coef_dyn
         self.coef_unif = coef_unif
+        self.dmt_finetune_epochs = dmt_finetune_epochs
+        self.dmt_rollout_steps = dmt_rollout_steps
+        self.dmt_lr = dmt_lr
         self.lr = lr
         self.weight_decay = weight_decay
         self.dropout_rate = dropout_rate
@@ -368,6 +392,7 @@ class SMTEstimator(PyTorchLightningEstimator):
             lr=self.lr,
             weight_decay=self.weight_decay,
             patience=self.patience,
+            dmt_lr=self.dmt_lr,
             model_kwargs={
                 "freq": self.freq,
                 "context_length": self.context_length,
@@ -389,6 +414,7 @@ class SMTEstimator(PyTorchLightningEstimator):
                 "dropout_rate": self.dropout_rate,
                 "coef_dyn": self.coef_dyn,
                 "coef_unif": self.coef_unif,
+                "dmt_rollout_steps": self.dmt_rollout_steps,
                 "distr_output": self.distr_output,
                 "lags_seq": self.lags_seq,
                 "scaling": self.scaling,
@@ -412,4 +438,88 @@ class SMTEstimator(PyTorchLightningEstimator):
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             device="auto",
+        )
+
+    def train_model(
+        self,
+        training_data: Dataset,
+        validation_data: Optional[Dataset] = None,
+        from_predictor=None,
+        shuffle_buffer_length: Optional[int] = None,
+        cache_data: bool = False,
+        ckpt_path: Optional[str] = None,
+        **kwargs,
+    ) -> TrainOutput:
+        # phase 1: standard SMT training
+        out = super().train_model(
+            training_data,
+            validation_data,
+            from_predictor=from_predictor,
+            shuffle_buffer_length=shuffle_buffer_length,
+            cache_data=cache_data,
+            ckpt_path=ckpt_path,
+        )
+        if self.dmt_finetune_epochs <= 0:
+            return out
+
+        # phase 2: DMT finetuning -- freeze the teacher, train only the
+        # recurrent cell on-policy to correct its rollout drift.
+        transformation = out.transformation
+        net = out.trained_net
+        net.enable_dmt(self.dmt_lr)
+
+        with env._let(max_idle_transforms=max(len(training_data), 100)):
+            transformed = transformation.apply(training_data, is_train=True)
+            if cache_data:
+                transformed = Cached(transformed)
+            training_data_loader = self.create_training_data_loader(
+                transformed, net, shuffle_buffer_length=shuffle_buffer_length
+            )
+
+        validation_data_loader = None
+        if validation_data is not None:
+            with env._let(max_idle_transforms=max(len(validation_data), 100)):
+                transformed_val = transformation.apply(
+                    validation_data, is_train=True
+                )
+                if cache_data:
+                    transformed_val = Cached(transformed_val)
+                validation_data_loader = self.create_validation_data_loader(
+                    transformed_val, net
+                )
+
+        monitor = "train_loss" if validation_data is None else "val_loss"
+        checkpoint = pl.callbacks.ModelCheckpoint(
+            monitor=monitor, mode="min", verbose=True
+        )
+        trainer_kwargs = {
+            **self.trainer_kwargs,
+            "max_epochs": self.dmt_finetune_epochs,
+        }
+        custom_callbacks = trainer_kwargs.pop("callbacks", [])
+        trainer = pl.Trainer(
+            **{
+                "accelerator": "auto",
+                "callbacks": [checkpoint] + custom_callbacks,
+                **trainer_kwargs,
+            }
+        )
+        trainer.fit(
+            model=net,
+            train_dataloaders=training_data_loader,
+            val_dataloaders=validation_data_loader,
+        )
+
+        if checkpoint.best_model_path != "":
+            best_model = net.__class__.load_from_checkpoint(
+                checkpoint.best_model_path
+            )
+        else:
+            best_model = net
+
+        return TrainOutput(
+            transformation=transformation,
+            trained_net=best_model,
+            trainer=trainer,
+            predictor=self.create_predictor(transformation, best_model),
         )

@@ -265,6 +265,7 @@ def test_estimator_constant_dataset(
             num_feat_static_real=1,
             num_feat_static_cat=2,
             cardinality=[2, 2],
+            dmt_finetune_epochs=1,
             trainer_kwargs=dict(max_epochs=2),
         ),
         lambda freq, prediction_length: MQF2MultiHorizonEstimator(

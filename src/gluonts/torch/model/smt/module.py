@@ -42,9 +42,11 @@ def make_transformer(
 ) -> nn.TransformerEncoder:
     """
     A pre-norm Transformer stack, used as the bidirectional encoder / memory
-    cell and -- with a causal mask -- as the decoder. SMT's decoder reads the
-    memory tokens as a prefix via causal self-attention, so this is a masked
-    ``nn.TransformerEncoder``, not a cross-attention ``nn.TransformerDecoder``.
+    cell and -- with a causal mask -- as the decoder.
+
+    SMT's decoder reads the memory tokens as a prefix via causal self-
+    attention, so this is a masked ``nn.TransformerEncoder``, not a cross-
+    attention ``nn.TransformerDecoder``.
     """
     layer = nn.TransformerEncoderLayer(
         d_model=d_model,
@@ -117,6 +119,7 @@ class SMTModel(nn.Module):
         dropout_rate: float = 0.1,
         coef_dyn: float = 0.1,
         coef_unif: float = 0.001,
+        dmt_rollout_steps: Optional[int] = None,
         distr_output: DistributionOutput = StudentTOutput(),
         lags_seq: Optional[List[int]] = None,
         scaling: bool = True,
@@ -168,6 +171,7 @@ class SMTModel(nn.Module):
         self.mem_tokens = mem_tokens
         self.coef_dyn = coef_dyn
         self.coef_unif = coef_unif
+        self.dmt_rollout_steps = dmt_rollout_steps
         dim_feedforward = dim_feedforward or 4 * d_model
 
         self.input_size = len(self.lags_seq) + self._number_of_features
@@ -426,6 +430,72 @@ class SMTModel(nn.Module):
             "loss_unif": loss_unif,
         }
 
+    def dmt_loss(
+        self,
+        feat_static_cat: torch.Tensor,
+        feat_static_real: torch.Tensor,
+        past_time_feat: torch.Tensor,
+        past_target: torch.Tensor,
+        past_observed_values: torch.Tensor,
+        future_time_feat: torch.Tensor,
+        future_target: torch.Tensor,
+        future_observed_values: torch.Tensor,
+    ) -> dict:
+        """
+        DAgger Memory Training loss (Kumar & Isola, 2026, Sec. 2.3).
+
+        The single-step SMT dynamics loss only ever feeds the recurrent cell
+        the teacher's (oracle) memory, so it never sees the drift that
+        accumulates when the cell is rolled out on its own states at
+        deployment. DMT corrects this on-policy: the cell is unrolled with its
+        *own* memory and regressed onto the teacher encoder's sliding-window
+        memory trajectory, with teacher-forced inputs. The context window walks
+        forward out of the past and into the future window one step at a time.
+
+        Used as a finetuning phase after SMT with the teacher (encoder,
+        decoder, embedding) frozen, so only ``rnn_cell`` is trained.
+        """
+        features, scale, _ = self.prepare_rnn_input(
+            feat_static_cat,
+            feat_static_real,
+            past_time_feat,
+            past_target,
+            past_observed_values,
+            future_time_feat,
+            future_target,
+        )
+
+        split = self.context_length - 1
+        steps = self.dmt_rollout_steps or self.prediction_length
+        steps = max(1, min(steps, self.prediction_length))
+        batch_size = features.shape[0]
+
+        # teacher oracle: the memory of each sliding context window, walking
+        # one step at a time into the future window (detached regression label)
+        windows = torch.stack(
+            [features[:, t : t + split] for t in range(steps)], dim=1
+        ).reshape(batch_size * steps, split, -1)
+        oracle = (
+            self.encode(windows)
+            .reshape(batch_size, steps, self.mem_tokens, self.d_model)
+            .detach()
+        )
+
+        # on-policy rollout: feed the cell its own memory, one teacher-forced
+        # future feature per step. ``memory.detach()`` keeps the gradient path
+        # one step long (no backprop through time) -- long-range credit is
+        # already carried by the encoder memory labels.
+        rolled = []
+        memory = oracle[:, 0]
+        for t in range(steps):
+            rolled.append(memory)
+            transition = features[:, split + t : split + t + 1]
+            memory = self.rnn_update(memory.detach(), transition)
+        rolled = torch.stack(rolled, dim=1)
+
+        loss_dyn = F.mse_loss(rolled, oracle)
+        return {"loss": loss_dyn, "loss_dyn": loss_dyn}
+
     def forward(
         self,
         feat_static_cat: torch.Tensor,
@@ -444,8 +514,8 @@ class SMTModel(nn.Module):
         official SMT, the teacher encoder seeds the RNN). Then, at each step,
         the next target is read out from the memory and the current step's
         feature, the sampled target is fed back as the next feature, and the
-        memory is advanced by a single ``rnn_update`` (no growing history /
-        no backprop-through-time) -- this is the network SMT actually trains.
+        memory is advanced by a single ``rnn_update`` (no growing history / no
+        backprop-through-time) -- this is the network SMT actually trains.
         """
         if num_parallel_samples is None:
             num_parallel_samples = self.num_parallel_samples
