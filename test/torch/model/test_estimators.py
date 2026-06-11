@@ -435,6 +435,39 @@ def test_estimator_with_features(estimator_constructor):
         f.mean
 
 
+def test_smt_dmt_finetune_freezes_teacher_and_trains_rnn():
+    # the DMT finetuning phase must only train the recurrent cell and keep the
+    # SMT-trained teacher (encoder/decoder/embedding) frozen
+    estimator = SMTEstimator(
+        freq="h",
+        prediction_length=4,
+        context_length=12,
+        d_model=8,
+        nhead=2,
+        num_encoder_layers=1,
+        num_decoder_layers=1,
+        num_rnn_layers=1,
+        mem_tokens=2,
+        dropout_rate=0.0,
+    )
+    module = estimator.create_lightning_module()
+    encoder_before = {
+        name: param.clone()
+        for name, param in module.model.encoder.named_parameters()
+    }
+
+    module.enable_dmt(estimator.dmt_lr)
+
+    trainable = {
+        name.split(".")[0]
+        for name, param in module.model.named_parameters()
+        if param.requires_grad
+    }
+    assert trainable == {"rnn_cell"}
+    for name, param in module.model.encoder.named_parameters():
+        assert (param == encoder_before[name]).all()
+
+
 def test_estimator_recovers_if_exception_encountered_during_training():
     class RaiseOnEpoch(Callback):
         def __init__(self):
