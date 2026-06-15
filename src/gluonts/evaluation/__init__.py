@@ -29,3 +29,4 @@ __all__ = [
     "aggregate_all",
     "aggregate_valid",
 ]
+from gluonts.evaluation.metrics import overlay_dx  # noqa: F401
