@@ -1,4 +1,4 @@
-torch>=1.9,<3
+torch>=1.13,<3
 lightning>=2.2.2,<2.6
 # Capping `lightning` does not cap `pytorch_lightning`, so we cap manually
 pytorch_lightning>=2.2.2,<2.6
