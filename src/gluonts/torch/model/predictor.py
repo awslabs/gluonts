@@ -117,6 +117,7 @@ class PyTorchPredictor(RepresentablePredictor):
         state_dict = torch.load(
             path / "prediction-net-state.pt",
             map_location=device,
+            weights_only=True,
         )
         predictor.prediction_net.load_state_dict(state_dict)
 
