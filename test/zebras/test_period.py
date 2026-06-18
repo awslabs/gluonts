@@ -157,3 +157,14 @@ def test_weekly_weekday_period(date, freq, result):
         zb.period(date, freq).periods(4).data,
         np.array(result).astype(np.datetime64),
     )
+
+
+def test_periods_intersection():
+    """Periods.intersection should work on NumPy 2.2+ (no np.in1d)."""
+    ps1 = zb.periods("2020-01", "D", 10)
+    ps2 = zb.periods("2020-01-03", "D", 5)
+
+    intersected = ps1.intersection(ps2)
+    assert len(intersected) == 5
+    # intersection returns a numpy array of datetime64 values
+    assert intersected.dtype == np.dtype("datetime64[D]")
