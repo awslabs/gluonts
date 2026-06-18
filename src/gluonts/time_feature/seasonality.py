@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import logging
+import warnings
 
 import pandas as pd
 
@@ -37,12 +38,34 @@ DEFAULT_SEASONALITIES = {
 }
 
 
-def get_seasonality(freq: str, seasonalities=DEFAULT_SEASONALITIES) -> int:
+def get_seasonality_for_frequency(
+    freq: str, seasonalities=DEFAULT_SEASONALITIES
+) -> int:
     """
-    Return the seasonality of a given frequency:
+    Return a calendar-based default seasonality for the given frequency.
 
-    >>> get_seasonality("2h")
+    This function does **not** inspect or analyse any time-series data.
+    It maps a pandas frequency alias (e.g. ``"H"``, ``"D"``, ``"M"``) to a
+    hard-coded calendar convention and divides by the interval multiplier.
+
+    Examples
+    --------
+    >>> get_seasonality_for_frequency("2h")
     12
+
+    Parameters
+    ----------
+    freq
+        A pandas-compatible frequency string (e.g. ``"H"``, ``"30min"``,
+        ``"D"``, ``"W"``, ``"M"``).
+    seasonalities
+        Optional override of the default seasonality mapping.
+
+    Returns
+    -------
+    int
+        The default seasonal period for the given frequency.  Falls back to
+        ``1`` when the multiplier does not evenly divide the base seasonality.
     """
     offset = pd.tseries.frequencies.to_offset(freq)
 
@@ -57,3 +80,20 @@ def get_seasonality(freq: str, seasonalities=DEFAULT_SEASONALITIES) -> int:
         f"{base_seasonality}. Falling back to seasonality 1."
     )
     return 1
+
+
+def get_seasonality(freq: str, seasonalities=DEFAULT_SEASONALITIES) -> int:
+    """
+    Deprecated alias for :func:`get_seasonality_for_frequency`.
+
+    .. deprecated::
+        Use :func:`get_seasonality_for_frequency` instead.  This function
+        will be removed in a future release.
+    """
+    warnings.warn(
+        "get_seasonality is deprecated; use "
+        "get_seasonality_for_frequency instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return get_seasonality_for_frequency(freq, seasonalities)
