@@ -106,7 +106,8 @@ class Mean(Aggregation):
                     self.n = np.zeros(summed_values.shape)
 
             self.partial_result += summed_values
-            self.n += np.ma.count(values, axis=self.axis)
+            assert self.n is not None
+            self.n = self.n + np.ma.count(values, axis=self.axis)
         else:
             if self.partial_result is None:
                 self.partial_result = []
