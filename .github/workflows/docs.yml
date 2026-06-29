@@ -27,11 +27,11 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Python
-      run: uv python install 3.14
+      run: uv python install 3.12
 
     - name: Install dependencies
       run: |
-        uv sync --python 3.14 --extra arrow --extra docs --extra torch --extra rotbaum --extra statsforecast
+        uv sync --python 3.12 --extra arrow --extra docs --extra torch --extra rotbaum --extra statsforecast
 
     - name: Install Pandoc
       run: |

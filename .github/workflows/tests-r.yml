@@ -45,7 +45,7 @@ jobs:
 
     - name: Install Python dependencies
       run: |
-        uv sync --python ${{ matrix.python-version }} --extra test --extra R
+        uv sync --no-dev --python ${{ matrix.python-version }} --extra test --extra R
 
     - name: Test with pytest
       run: |

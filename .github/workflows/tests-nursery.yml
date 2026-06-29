@@ -27,7 +27,7 @@ jobs:
       run: uv python install ${{ matrix.python-version }}
 
     - name: Install dependencies
-      run: uv sync --python ${{ matrix.python-version }} --extra torch --extra shell --extra test --extra m-competitions --extra rotbaum
+      run: uv sync --no-dev --python ${{ matrix.python-version }} --extra torch --extra shell --extra test --extra m-competitions --extra rotbaum
 
     - name: Test with pytest
       run: |
