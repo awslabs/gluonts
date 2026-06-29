@@ -36,7 +36,7 @@ def type_check() -> int:
                 returned a non-zero exit code. Fix the type errors listed above
                 and then run
 
-                    just mypy
+                    uv run mypy {" ".join(mypy_opts + mypy_args)}
 
                 in order to validate your fixes.
                 """
@@ -48,31 +48,26 @@ def type_check() -> int:
 
 
 def style_check() -> int:
-    black_opts = []
-    black_args = [
+    format_args = [
         str(ROOT / folder)
         for folder in ["src", "test", "examples"]
         if (ROOT / folder).is_dir()
     ]
 
     try:
-        check_output(["black"] + ["--check"] + black_opts + black_args)
+        check_output(["ruff", "format", "--check"] + format_args)
         return 0
     except CalledProcessError as e:
         print(
             textwrap.dedent(
                 f"""
-                Black command
+                Ruff format command
 
-                    black {" ".join(['--check'] + black_opts + black_args)}
+                    ruff format --check {" ".join(format_args)}
 
                 returned a non-zero exit code. Fix the files listed above with
 
-                    black {" ".join(black_opts + black_args)}
-
-                and then run
-
-                    just black
+                    uv run ruff format {" ".join(format_args)}
 
                 in order to validate your fixes.
                 """
@@ -113,11 +108,7 @@ def license_check() -> int:
 
                 returned a non-zero exit code. Fix the files listed above with
 
-                    .devtools/license {" ".join(['fix'] + py_files)}
-
-                and then run
-
-                    just license
+                    uv run python .devtools/license {" ".join(['fix'] + py_files)}
 
                 in order to validate your fixes.
                 """
