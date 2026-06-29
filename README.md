@@ -16,7 +16,7 @@ based on [PyTorch](https://pytorch.org) and [MXNet](https://mxnet.apache.org).
 
 ## Installation
 
-GluonTS requires Python 3.9 or newer, and the easiest way to install it is via
+GluonTS requires Python 3.10 or newer, and the easiest way to install it is via
 `pip`:
 
 ```bash

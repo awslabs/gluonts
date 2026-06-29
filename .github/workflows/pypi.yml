@@ -17,7 +17,7 @@ jobs:
         version: "latest"
 
     - name: Set up Python
-      run: uv python install 3.11
+      run: uv python install 3.14
 
     - name: Validate version matches tag
       run: |

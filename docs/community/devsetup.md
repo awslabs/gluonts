@@ -1,6 +1,6 @@
 # Development Setup
 
-This setup guide assumes that you have Python 3.9 or higher installed.
+This setup guide assumes that you have Python 3.10 or higher installed.
 We recommend using [uv][uv] for managing Python environments and dependencies.
 
 ## Initial Setup
@@ -28,11 +28,9 @@ To run the project tests:
 
 ```bash
 uv run pytest
-# or using just
-just test
 ```
 
-To build the project documentation:
+To build the project documentation, you can use [just][just]:
 
 ```bash
 just docs
@@ -41,21 +39,15 @@ just docs
 This will put the documentation in ``docs/_build/html``, where you can inspect
 it by opening ``index.html``.
 
+[just]: https://github.com/casey/just
+
 You can also run the code quality checks manually:
 
 ```bash
-just mypy    # for Mypy type checks
-just black   # for Black code style checks
-just lint    # for Ruff linting
-just license # for license header checks
-```
-
-Or run individual commands directly:
-
-```bash
-uv run mypy src                              # type checking
-uv run black --check --diff --color src test # style checking
-uv run ruff check src/                       # linting
+uv run mypy src                        # type checking
+uv run ruff format --check src test    # format checking
+uv run ruff check src test             # linting
+uv run python .devtools/license check src test  # license header checks
 ```
 
 Note that these checks are executed automatically as part of CI.
@@ -92,9 +84,9 @@ to ensure that code added to the repository is type-safe and type-checked.
    marked with return type ``None``.
 
 If you adhere to the above guidelines, you should be able to run
-``just mypy`` and catch type errors early directly on your branch.
+``uv run mypy src`` and catch type errors early directly on your branch.
 
-[type hints]: https://docs.python.org/3.9/library/typing.html
+[type hints]: https://docs.python.org/3.10/library/typing.html
 [mypy]: https://mypy.readthedocs.io/en/latest/
 
 ## Editing the documentation
@@ -110,12 +102,6 @@ open docs/_build/html/index.html # open the generated docs in a browser
 ```
 
 Ensure that there are no syntax errors and warnings before committing a PR.
-
-Using [just][just], you can
-- build the entire documentation with `just docs` or
-- only translate the templates (like the tutorials) to `.md` files, using `just compile_notebooks skip`.
-
-[just]: https://github.com/casey/just
 
 If you are directly editing ``*.rst`` files within the ``docs`` folder, you
 can use a ``sphinx-autobuild`` autobuild session that starts a web server and
