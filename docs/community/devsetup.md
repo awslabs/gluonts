@@ -1,6 +1,6 @@
 # Development Setup
 
-This setup guide assumes that you have Python 3.10 to 3.12 installed.
+This setup guide assumes that you have Python 3.10 or higher installed.
 We recommend using [uv][uv] for managing Python environments and dependencies.
 
 ## Initial Setup

@@ -4,7 +4,7 @@ version = "0.17.0.dev0"
 description = "Probabilistic time series modeling in Python."
 readme = "README.md"
 license = { text = "Apache-2.0" }
-requires-python = ">=3.10,<3.13"
+requires-python = ">=3.10,<3.15"
 authors = [
     { name = "Amazon", email = "gluon-ts-dev@amazon.com" }
 ]
@@ -21,6 +21,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
@@ -97,7 +99,7 @@ torch = [
     "torch>=1.13,<3",
     "lightning>=2.2.2,<2.6",
     "pytorch_lightning>=2.2.2,<2.6",
-    "scipy<1.16.0",
+    "scipy",
 ]
 
 cpflows = [
@@ -138,7 +140,7 @@ rotbaum-extra = [
 ]
 
 statsforecast = [
-    "scipy<1.16.0",
+    "scipy",
     "statsforecast~=1.0",
 ]
 
