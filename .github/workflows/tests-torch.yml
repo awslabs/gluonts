@@ -29,4 +29,4 @@ jobs:
 
     - name: Test with pytest
       run: |
-        uv run pytest -n2 --doctest-modules --ignore test/nursery test
+        uv run --no-sync pytest -n2 --doctest-modules --ignore test/nursery test

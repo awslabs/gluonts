@@ -30,7 +30,7 @@ jobs:
 
     - name: Test with pytest
       run: |
-        uv run pytest -n2 --doctest-modules \
+        uv run --no-sync pytest -n2 --doctest-modules \
           src/gluonts/core \
           src/gluonts/dataset \
           src/gluonts/model \
