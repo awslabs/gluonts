@@ -25,7 +25,7 @@ except ImportError:
     raise ImportError(
         "MQF2 model requires the 'cpflows' package. "
         "Install the cpflows extra to include it, for example: "
-        "pip install \"gluonts[cpflows]\" or uv sync --extra cpflows"
+        'pip install "gluonts[cpflows]" or uv sync --extra cpflows'
     )
 
 

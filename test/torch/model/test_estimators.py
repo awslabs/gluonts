@@ -66,7 +66,8 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
         ),
         pytest.param(
             lambda dataset: __import__(
-                "gluonts.torch.model.mqf2", fromlist=["MQF2MultiHorizonEstimator"]
+                "gluonts.torch.model.mqf2",
+                fromlist=["MQF2MultiHorizonEstimator"],
             ).MQF2MultiHorizonEstimator(
                 freq=dataset.metadata.freq,
                 prediction_length=dataset.metadata.prediction_length,
@@ -246,7 +247,8 @@ def test_estimator_constant_dataset(
         ),
         pytest.param(
             lambda freq, prediction_length: __import__(
-                "gluonts.torch.model.mqf2", fromlist=["MQF2MultiHorizonEstimator"]
+                "gluonts.torch.model.mqf2",
+                fromlist=["MQF2MultiHorizonEstimator"],
             ).MQF2MultiHorizonEstimator(
                 freq=freq,
                 prediction_length=prediction_length,
