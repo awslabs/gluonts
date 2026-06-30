@@ -241,7 +241,6 @@ dev = [
     # Linting and formatting
     "ruff==0.2.2",
     "black==24.02",
-    "docformatter[tomli]==1.5.0",
     # Documentation
     "ipython",
     "ipykernel~=6.5",
@@ -291,12 +290,6 @@ lint.ignore = [
 
 exclude = ["src/gluonts/nursery"]
 
-
-[tool.docformatter]
-black = true
-pre-summary-newline = true
-make-summary-multi-line = true
-wrap-descriptions = 79
 
 [tool.mypy]
 ignore_missing_imports = true
