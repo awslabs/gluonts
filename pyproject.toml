@@ -241,7 +241,7 @@ dev = [
     # Linting and formatting
     "ruff==0.2.2",
     "black==24.02",
-    "docformatter[tomli]==1.5.0",
+    "docformatter[tomli]==1.5.0; python_version < '3.14'",
     # Documentation
     "ipython",
     "ipykernel~=6.5",
