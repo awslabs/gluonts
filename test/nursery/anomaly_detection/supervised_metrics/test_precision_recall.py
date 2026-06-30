@@ -15,6 +15,9 @@ from typing import Dict, List, Tuple
 
 import numpy as np
 import pytest
+
+pytest.importorskip("numba")
+
 from sklearn.metrics import auc
 
 from gluonts.nursery.anomaly_detection.supervised_metrics import (
