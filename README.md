@@ -11,23 +11,20 @@
 **📢 BREAKING NEWS**: We released **Chronos**, a suite of pretrained models for zero-shot time series forecasting. Chronos can generate accurate probabilistic predictions for new time series not seen during training. Check it out [here](https://github.com/amazon-science/chronos-forecasting)!
 
 GluonTS is a Python package for probabilistic time series modeling, focusing on deep learning based models,
-based on [PyTorch](https://pytorch.org) and [MXNet](https://mxnet.apache.org).
+based on [PyTorch](https://pytorch.org).
 
 
 ## Installation
 
-GluonTS requires Python 3.10 to 3.14, and the easiest way to install it is via
-`pip`:
+GluonTS requires Python 3.10 to 3.14. We recommend using
+[uv](https://github.com/astral-sh/uv) for managing environments:
 
 ```bash
 # install with support for torch models
-pip install "gluonts[torch]"
-
-# install with support for mxnet models (Python < 3.12 only)
-pip install "gluonts[mxnet]"
+uv pip install "gluonts[torch]"
 ```
 
-For development, we recommend using [uv](https://github.com/astral-sh/uv):
+For development:
 
 ```bash
 # clone the repository
@@ -36,6 +33,12 @@ cd gluonts
 
 # install with all development dependencies
 uv sync --all-extras
+```
+
+You can also install via `pip`:
+
+```bash
+pip install "gluonts[torch]"
 ```
 
 See the [documentation](https://ts.gluon.ai/stable/getting_started/install.html)
