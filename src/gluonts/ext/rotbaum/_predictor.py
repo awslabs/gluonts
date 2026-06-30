@@ -534,9 +534,7 @@ class TreePredictor(RepresentablePredictor):
             )
             + coordinate_map["target"][1]
             - coordinate_map["target"][0]
-        ) == importances.shape[
-            0
-        ]  # Testing that we covered all of coordinates
+        ) == importances.shape[0]  # Testing that we covered all of coordinates
 
         quantile_aggregated_importance_result = FeatureImportanceResult(
             target=np.expand_dims(

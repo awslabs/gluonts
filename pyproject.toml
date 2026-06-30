@@ -1,5 +1,268 @@
+[project]
+name = "gluonts"
+version = "0.17.0.dev0"
+description = "Probabilistic time series modeling in Python."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10,<3.15"
+authors = [
+    { name = "Amazon", email = "gluon-ts-dev@amazon.com" }
+]
+maintainers = [
+    { email = "gluon-ts-dev@amazon.com" }
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+keywords = [
+    "time series",
+    "forecasting",
+    "machine learning",
+    "deep learning",
+    "probabilistic forecasting",
+]
+
+dependencies = [
+    "numpy>=1.24,<2.5; python_version >= '3.12'",
+    "numpy>=1.16,<2.5; python_version < '3.12'",
+    "pandas>=1.4,<3",
+    "pydantic>=1.7,<3",
+    "tqdm~=4.23",
+    "toolz~=0.10",
+    "typing-extensions~=4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/awslabs/gluonts/"
+Documentation = "https://ts.gluon.ai/stable/"
+Repository = "https://github.com/awslabs/gluonts/"
+Issues = "https://github.com/awslabs/gluonts/issues"
+
+[project.entry-points."pygments.styles"]
+"gluonts-dark" = "gluonts.meta.style:Dark"
+
+[project.optional-dependencies]
+arrow = [
+    "pyarrow",
+]
+
+docs = [
+    "ipython",
+    "ipykernel~=6.5",
+    "nbconvert~=6.5.1",
+    "nbsphinx~=0.9.7",
+    "notedown",
+    "setuptools<71",
+    "lxml~=5.1.0",
+    "pytest-runner~=2.11",
+    "recommonmark",
+    "sphinx~=5.0",
+    "docutils~=0.19.0",
+    "optuna~=2.10",
+    "furo==2022.6.4.1",
+    "m2r2",
+    "myst-parser",
+    "click",
+    "orjson",
+    "black",
+    "holidays~=0.9",
+    "matplotlib~=3.6",
+]
+
+test = [
+    "pandas>=1.4",
+    "pytest>7.0",
+    "pytest-cov>4.0,<5.0",
+    "pytest-timeout>2.0,<3.0",
+    "pytest-xdist>3.0,<4.0",
+    "pytest-rerunfailures>=13.0,<14.0",
+    "ujson",
+    "orjson",
+    "requests",
+    "holidays~=0.9",
+    "matplotlib~=3.6",
+]
+
+torch = [
+    "torch>=1.13,<3",
+    "lightning>=2.2.2,<2.6",
+    "pytorch_lightning>=2.2.2,<2.6",
+    "scipy",
+]
+
+cpflows = [
+    "cpflows @ git+https://github.com/lostella/CP-Flow.git@gluonts-dependency",
+]
+
+shell = [
+    "flask~=3.0",
+    "waitress~=3.0.1",
+]
+
+sagemaker = [
+    "sagemaker~=2.0,>2.214.3",
+    "s3fs~=0.6",
+]
+
+prophet = [
+    "prophet~=1.0",
+]
+
+R = [
+    "rpy2~=3.5,<3.6",
+]
+
+pro = [
+    "pyarrow",
+    "orjson",
+]
+
+rotbaum = [
+    "xgboost>=0.90,<2",
+    "scikit-learn~=1.0",
+]
+
+rotbaum-extra = [
+    "Cython<3.0",
+    "lightgbm>=2.3.1",
+]
+
+statsforecast = [
+    "scipy",
+    "statsforecast~=1.0",
+]
+
+hierarchicalforecast = [
+    "statsforecast~=1.0",
+    "hierarchicalforecast~=0.3",
+]
+
+m-competitions = [
+    "statsmodels~=0.11",
+]
+
+dev = [
+    # arrow
+    "pyarrow",
+    # docs
+    "ipython",
+    "ipykernel~=6.5",
+    "nbconvert~=6.5.1",
+    "nbsphinx~=0.9.7",
+    "notedown",
+    "setuptools<71",
+    "lxml~=5.1.0",
+    "pytest-runner~=2.11",
+    "recommonmark",
+    "sphinx~=5.0",
+    "docutils~=0.19.0",
+    "optuna~=2.10",
+    "furo==2022.6.4.1",
+    "m2r2",
+    "myst-parser",
+    "click",
+    "orjson",
+    "black",
+    "holidays~=0.9",
+    "matplotlib~=3.6",
+    # test
+    "pandas>=1.4",
+    "pytest>7.0",
+    "pytest-cov>4.0,<5.0",
+    "pytest-timeout>2.0,<3.0",
+    "pytest-xdist>3.0,<4.0",
+    "pytest-rerunfailures>=13.0,<14.0",
+    "ujson",
+    "requests",
+    # shell
+    "flask~=3.0",
+    "waitress~=3.0.1",
+    # sagemaker
+    "sagemaker~=2.0,>2.214.3",
+    "s3fs~=0.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src/gluonts",
+    "/docs",
+    "/test",
+    "/NOTICE",
+]
+exclude = [
+    "/src/gluonts/nursery",
+    "**/__pycache__",
+    "**/*.pyc",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/gluonts"]
+exclude = [
+    "gluonts/nursery",
+]
+
+[dependency-groups]
+dev = [
+    # Testing
+    "pytest>7.0",
+    "pytest-cov>4.0,<5.0",
+    "pytest-timeout>2.0,<3.0",
+    "pytest-xdist>3.0,<4.0",
+    "pytest-rerunfailures>=13.0,<14.0",
+    "ujson",
+    "orjson",
+    "requests",
+    "holidays~=0.9",
+    "matplotlib~=3.6",
+    # Type checking
+    "mypy==1.8.0",
+    "types-python-dateutil",
+    "types-waitress",
+    "types-PyYAML",
+    # Linting and formatting
+    "ruff==0.2.2",
+    "black==24.02",
+    "docformatter[tomli]==1.5.0",
+    # Documentation
+    "ipython",
+    "ipykernel~=6.5",
+    "nbconvert~=6.5.1",
+    "nbsphinx~=0.9.7",
+    "notedown",
+    "setuptools<71",
+    "lxml~=5.1.0",
+    "pytest-runner~=2.11",
+    "recommonmark",
+    "sphinx~=5.0",
+    "docutils~=0.19.0",
+    "optuna~=2.10",
+    "furo==2022.6.4.1",
+    "m2r2",
+    "myst-parser",
+    "click",
+]
+
 [tool.black]
-target-version = ['py38']
+target-version = ['py39']
 line-length = 79
 
 [tool.pytest.ini_options]
@@ -23,7 +286,7 @@ line-length = 79
 
 lint.ignore = [
     "E501",  # line-length is handled by black
-    "E741"  # TODO: remove usage of `l`
+    "E741"   # TODO: remove usage of `l`
 ]
 
 exclude = ["src/gluonts/nursery"]
@@ -39,11 +302,11 @@ wrap-descriptions = 79
 ignore_missing_imports = true
 allow_redefinition = true
 follow_imports = "silent"
+exclude = ["src/gluonts/nursery", "test/nursery"]
 
 [tool.isort]
 known_first_party = "gluonts"
 known_third_party = [
-    "mxnet",
     "numpy",
     "pandas",
     "pytest",

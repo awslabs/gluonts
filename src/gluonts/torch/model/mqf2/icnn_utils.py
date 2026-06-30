@@ -23,7 +23,14 @@
 
 from typing import Optional, Tuple, List, Union
 
-from cpflows.flows import SequentialFlow, DeepConvexFlow
+try:
+    from cpflows.flows import SequentialFlow, DeepConvexFlow
+except ImportError:
+    raise ImportError(
+        "MQF2 model requires the 'cpflows' package. "
+        "Install the cpflows extra to include it, for example: "
+        'pip install "gluonts[cpflows]" or uv sync --extra cpflows'
+    )
 
 import torch
 import torch.nn.functional as F

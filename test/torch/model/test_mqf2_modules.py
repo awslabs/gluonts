@@ -16,6 +16,8 @@ from typing import List, Optional
 import pytest
 import torch
 
+cpflows = pytest.importorskip("cpflows")
+
 from gluonts.torch.model.mqf2 import MQF2MultiHorizonLightningModule
 from gluonts.torch.model.mqf2.distribution import MQF2DistributionOutput
 

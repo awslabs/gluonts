@@ -71,7 +71,9 @@ class FitResult:
             )
 
             # Evaluate
-            with _suppress_stdout_stderr():  # need to do this to suppress Prophet outputs
+            with (
+                _suppress_stdout_stderr()
+            ):  # need to do this to suppress Prophet outputs
                 prediction, latency = generate_forecasts(
                     predictor,
                     dataset,

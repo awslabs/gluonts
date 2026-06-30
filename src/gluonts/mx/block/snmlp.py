@@ -28,7 +28,7 @@ from gluonts.mx.block.sndense import SNDense
 
 
 def jacobian_sn_mlp_block_bf(
-    layers: List[Tuple[mx.gluon.HybridBlock, Tensor]]
+    layers: List[Tuple[mx.gluon.HybridBlock, Tensor]],
 ) -> Tensor:
     """
     Brute force computation of the jacobian of a SNMlpBlock jac is of shape

@@ -157,14 +157,22 @@ def test_segment_precision_recall(test_case: Dict):
     )
 
     expected_segment_precision = test_case["segment_precision"]
-    np.testing.assert_almost_equal(
-        obtained_segment_precision, expected_segment_precision
-    ), f"Expected segment precision: {expected_segment_precision}, " f"obtained segment precision: {obtained_segment_precision}"
+    (
+        np.testing.assert_almost_equal(
+            obtained_segment_precision, expected_segment_precision
+        ),
+        f"Expected segment precision: {expected_segment_precision}, "
+        f"obtained segment precision: {obtained_segment_precision}",
+    )
 
     expected_segment_recall = test_case["segment_recall"]
-    np.testing.assert_almost_equal(
-        obtained_segment_recall, expected_segment_recall
-    ), f"Expected segment recall: {expected_segment_recall}, " f"obtained segment recall: {obtained_segment_recall}"
+    (
+        np.testing.assert_almost_equal(
+            obtained_segment_recall, expected_segment_recall
+        ),
+        f"Expected segment recall: {expected_segment_recall}, "
+        f"obtained segment recall: {obtained_segment_recall}",
+    )
 
 
 TEST_CASES_LABELS_TO_RANGES = [

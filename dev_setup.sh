@@ -4,7 +4,7 @@ ACT_GIT_VERSION=$(git --version | cut -d' ' -f3)
 REQ_GIT_VERSION="2.9"
 
 ACT_PYTHON_VERSION=$(python --version | cut -d' ' -f2)
-REQ_PYTHON_VERSION="3.6"
+REQ_PYTHON_VERSION="3.10"
 
 #!/bin/bash
 vercomp () {
