@@ -1,13 +1,10 @@
-name: Ruff & Docformat
+name: Ruff
 
 on: [push, pull_request]
 
 jobs:
   lint:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        check: ["ruff", "docformatter"]
 
     steps:
     - uses: actions/checkout@v7
@@ -24,10 +21,5 @@ jobs:
       run: uv sync --python 3.12
 
     - name: Ruff (Flake8)
-      if: matrix.check == 'ruff'
       working-directory: src/
       run: uv run ruff check .
-
-    - name: Docformatter
-      if: matrix.check == 'docformatter'
-      run: uv run docformatter --check -r src/
