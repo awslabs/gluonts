@@ -45,10 +45,9 @@ Batchable = TypeVar("Batchable", TimeSeries, TimeFrame, SplitFrame)
 def batch(xs: list):
     assert xs, "Passed data cannot be empty."
     types = set(map(type, xs))
-    assert (
-        len(types) == 1
-    ), "All values need to be of same type, got: " + ", ".join(
-        f"'{ty.__name__}'" for ty in types
+    assert len(types) == 1, (
+        "All values need to be of same type, got: "
+        + ", ".join(f"'{ty.__name__}'" for ty in types)
     )
     ty = types.pop()
     assert ty in set(

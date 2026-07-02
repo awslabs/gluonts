@@ -27,17 +27,38 @@ clean:
   git clean -ff -d -x --exclude="{{ROOTDIR}}/tests/externaldata/*" --exclude="{{ROOTDIR}}/tests/data/*" --exclude="{{ROOTDIR}}/conda/"
 
 compile_notebooks:
-    python -m ipykernel install --user --name docsbuild
-    python {{MD2IPYNB}} --kernel docsbuild docs/tutorials/**/*.md.template --mode {{mode}}
+    uv run python -m ipykernel install --user --name docsbuild
+    uv run python {{MD2IPYNB}} --kernel docsbuild docs/tutorials/**/*.md.template --mode {{mode}}
 
 release:
-  python setup.py sdist
+  uv build
 
 black:
-  black --check --diff --color src test examples
-
-mypy:
-  python setup.py type_check
+  uv run black --check --diff --color src test examples
 
 license:
-  python .devtools/license check src test
+  uv run python .devtools/license check src test
+
+# Install the package with all development dependencies
+install-dev:
+  uv sync --all-extras
+
+# Run tests
+test *args:
+  uv run pytest -n2 --doctest-modules --ignore test/nursery test {{args}}
+
+# Run linting checks
+lint-check:
+  uv run ruff check src test
+
+# Run type checks
+type-check:
+  uv run mypy src
+
+# Run format checks
+format-check:
+  uv run ruff format --check src test
+
+# Format code
+format:
+  uv run ruff format src test

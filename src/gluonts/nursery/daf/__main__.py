@@ -171,9 +171,12 @@ def main():
     src_name = args.data.src_name
     tgt_name = args.data.tgt_name
     exp_name = f"{src_name[0].upper()}2{tgt_name[0].upper()}"
-    with Path(__file__).parents[1].joinpath(
-        f"dumps/{exp_name}/defaults.json"
-    ).open("r") as f:
+    with (
+        Path(__file__)
+        .parents[1]
+        .joinpath(f"dumps/{exp_name}/defaults.json")
+        .open("r") as f
+    ):
         defaults = json.load(f)
     update_configs(args, defaults)
     src_dataset, tgt_dataset = get_dataset(**vars(args.data))

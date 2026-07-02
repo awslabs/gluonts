@@ -1,8 +1,7 @@
-FROM python:3.8
+FROM python:3.11
 
 ADD . /gluonts
 
-RUN pip install -r /gluonts/requirements/requirements-mxnet.txt
-RUN pip install /gluonts[shell]
+RUN pip install "/gluonts[mxnet,shell]"
 
 ENTRYPOINT ["python", "-m", "gluonts.shell"]

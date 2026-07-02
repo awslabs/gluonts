@@ -48,7 +48,10 @@ class MeanScaling(Representation):
         self.clip_max = clip_max
 
     def compute_scale(
-        self, F, data: Tensor, observed_indicator: Tensor  # shapes (N, T, C)
+        self,
+        F,
+        data: Tensor,
+        observed_indicator: Tensor,  # shapes (N, T, C)
     ) -> Tensor:
         # these will have shape (N, C)
         num_observed = F.sum(observed_indicator, axis=1)

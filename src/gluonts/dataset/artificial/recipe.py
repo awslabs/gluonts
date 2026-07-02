@@ -446,14 +446,13 @@ for func_name in _NUMPY_FUNC_NAMES:
         continue
 
     s = f"""
-    @functools.wraps(np.{func_name})
     def {normalized_func_name}(*args, **kwargs):
         return NumpyFunc('{func_name}', args, kwargs)
 
     lifted_numpy.{func_name} = {normalized_func_name}
-    # disable numpy docstring tests
-    lifted_numpy.{func_name}.__doc__ = lifted_numpy.{func_name}.__doc__.replace('>>>', '>>')
-    """  # noqa: E501
+    # disable numpy docstring tests by removing docstring entirely
+    lifted_numpy.{func_name}.__doc__ = None
+    """
     exec(textwrap.dedent(s))
 
 

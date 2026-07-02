@@ -87,9 +87,7 @@ def calculate_metrics(
     prediction_length = 3
     freq = "1D"
 
-    ts_start_dates = (
-        []
-    )  # starting date of each time series - can be different in general
+    ts_start_dates = []  # starting date of each time series - can be different in general
     pd_timeseries = []  # list of pandas.DataFrame
     samples = []  # list of forecast samples
     start_dates = []  # start date of the prediction range

@@ -20,11 +20,6 @@ def parse_expr(v):
     raise ValueError(v)
 
 
-@parse_expr.register(ast.Num)
-def parse_num(v: ast.Num):
-    return v.n
-
-
 @parse_expr.register(ast.UnaryOp)
 def parse_unary_op(v: ast.UnaryOp):
     operand = parse_expr(v.operand)
@@ -33,11 +28,6 @@ def parse_unary_op(v: ast.UnaryOp):
     assert isinstance(v.op, ast.USub)
 
     return -operand
-
-
-@parse_expr.register(ast.Str)
-def parse_str(v: ast.Str):
-    return v.s
 
 
 @parse_expr.register(ast.List)
@@ -65,11 +55,6 @@ def parse_set(v: ast.Set):
 @parse_expr.register(ast.keyword)
 def parse_keyword(v: ast.keyword):
     return v.arg, parse_expr(v.value)
-
-
-@parse_expr.register(ast.NameConstant)
-def parse_name_constant(v: ast.NameConstant):
-    return v.value
 
 
 @parse_expr.register(ast.Constant)

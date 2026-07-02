@@ -12,17 +12,33 @@
 # permissions and limitations under the License.
 
 from datetime import datetime
-from distutils.util import strtobool
 from types import SimpleNamespace
 from typing import Dict
 
 import numpy as np
-from toolz import compose_left
 
 from gluonts import json
 from gluonts.exceptions import GluonTSDataError
 
-parse_bool = compose_left(strtobool, bool)
+
+def strtobool(val: str) -> bool:
+    """
+    Convert a string representation of truth to True or False.
+
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'. False values are
+    'n', 'no', 'f', 'false', 'off', and '0'. Raises ValueError if 'val' is
+    anything else.
+    """
+    val = val.lower()
+    if val in ("y", "yes", "t", "true", "on", "1"):
+        return True
+    elif val in ("n", "no", "f", "false", "off", "0"):
+        return False
+    else:
+        raise ValueError(f"invalid truth value {val!r}")
+
+
+parse_bool = strtobool
 
 
 def parse_attribute(ty, value: str):
