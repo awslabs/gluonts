@@ -7,20 +7,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: extractions/setup-just@v1
-    - uses: actions/setup-python@v4
+    - uses: actions/checkout@v7
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v8.2.0
       with:
-          python-version: '3.11'
+        version: "latest"
+
+    - name: Set up Python
+      run: uv python install 3.12
+
     - name: Install dependencies
-      run: |
-        pip install .
-        # todo: install also `black[jupyter]`
-        pip install click "black==24.02" "mypy==1.8.0" \
-            types-python-dateutil types-waitress types-PyYAML
+      run: uv sync --python 3.12
+
     - name: Style check
-      run: just black
+      run: uv run ruff format --check src test
+
     - name: Type check
-      run: just mypy
+      run: uv run mypy src
+
     - name: Check license headers
-      run: just license
+      run: uv run python .devtools/license check src test

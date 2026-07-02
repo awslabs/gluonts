@@ -14,9 +14,10 @@
 import pytest
 import torch
 
+import importlib.util
+
 from gluonts.torch.distributions import QuantileOutput
 from gluonts.torch.model.deepar import DeepARModel
-from gluonts.torch.model.mqf2 import MQF2MultiHorizonModel
 from gluonts.torch.model.simple_feedforward import SimpleFeedForwardModel
 from gluonts.torch.model.tft import TemporalFusionTransformerModel
 
@@ -47,19 +48,16 @@ def assert_shapes_and_dtypes(tensors, shapes, dtypes):
             (4, 100, 12),
             torch.float,
         ),
-        (
-            MQF2MultiHorizonModel(
-                freq="1H",
-                context_length=24,
-                prediction_length=12,
-                num_feat_dynamic_real=1,
-                num_feat_static_real=1,
-                num_feat_static_cat=1,
-                cardinality=[1],
-            ),
+        pytest.param(
+            None,
             4,
             (4, 100, 12),
             torch.float,
+            id="mqf2",
+            marks=pytest.mark.skipif(
+                not importlib.util.find_spec("cpflows"),
+                reason="cpflows not installed",
+            ),
         ),
         (
             SimpleFeedForwardModel(
@@ -93,6 +91,18 @@ def assert_shapes_and_dtypes(tensors, shapes, dtypes):
     ],
 )
 def test_module_smoke(module, batch_size, expected_shapes, expected_dtypes):
+    if module is None:
+        from gluonts.torch.model.mqf2 import MQF2MultiHorizonModel
+
+        module = MQF2MultiHorizonModel(
+            freq="1H",
+            context_length=24,
+            prediction_length=12,
+            num_feat_dynamic_real=1,
+            num_feat_static_real=1,
+            num_feat_static_cat=1,
+            cardinality=[1],
+        )
     batch = module.describe_inputs(batch_size).zeros()
     outputs = module(**batch)
     assert_shapes_and_dtypes(outputs, expected_shapes, expected_dtypes)

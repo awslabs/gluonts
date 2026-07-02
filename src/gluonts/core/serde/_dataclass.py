@@ -200,8 +200,9 @@ def _dataclass(
             model_fields[name] = ty, pydantic.Field(default=field.default)
         # do we have a default_factory set
         elif not isinstance(field.default_factory, dataclasses._MISSING_TYPE):
-            model_fields[name] = ty, pydantic.Field(
-                default_factory=field.default_factory
+            model_fields[name] = (
+                ty,
+                pydantic.Field(default_factory=field.default_factory),
             )
         # no default
         else:

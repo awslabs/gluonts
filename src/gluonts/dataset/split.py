@@ -253,9 +253,10 @@ class AbstractBaseSplitter(ABC):
                 )
 
                 if max_history is not None:
-                    yield slice_data_entry(
-                        test[0], slice(-max_history, None)
-                    ), test[1]
+                    yield (
+                        slice_data_entry(test[0], slice(-max_history, None)),
+                        test[1],
+                    )
                 else:
                     yield test[0], test[1]
 

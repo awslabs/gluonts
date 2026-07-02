@@ -13,7 +13,6 @@
 
 import os
 import tarfile
-from distutils.util import strtobool
 from functools import partial
 from typing import Dict, Optional, Union
 
@@ -24,6 +23,16 @@ from gluonts.model import Predictor
 from gluonts.util import safe_extractall
 
 from . import sagemaker
+
+
+def _strtobool(val):
+    val = val.strip().lower()
+    if val in ("y", "yes", "t", "true", "on", "1"):
+        return True
+    elif val in ("n", "no", "f", "false", "off", "0"):
+        return False
+    else:
+        raise ValueError(f"invalid truth value {val!r}")
 
 
 class TrainEnv(sagemaker.TrainEnv):
@@ -56,7 +65,7 @@ class TrainEnv(sagemaker.TrainEnv):
         return datasets
 
     def _listify_dataset(self):
-        return strtobool(self.hyperparameters.get("listify_dataset", "no"))
+        return _strtobool(self.hyperparameters.get("listify_dataset", "no"))
 
 
 class ServeEnv(sagemaker.ServeEnv):

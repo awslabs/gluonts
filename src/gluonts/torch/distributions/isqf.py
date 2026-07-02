@@ -383,8 +383,9 @@ class ISQF(torch.distributions.Distribution):
             alpha = 1 - alpha
 
         if dim is not None:
-            tail_a, tail_b = tail_a.unsqueeze(dim=dim), tail_b.unsqueeze(
-                dim=dim
+            tail_a, tail_b = (
+                tail_a.unsqueeze(dim=dim),
+                tail_b.unsqueeze(dim=dim),
             )
 
         return tail_a * torch.log(alpha) + tail_b

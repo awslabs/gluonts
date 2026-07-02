@@ -209,13 +209,16 @@ class Trainer:
 
         logger.info("Start model training")
 
-        with tempfile.TemporaryDirectory(
-            prefix="gluonts-trainer-temp-"
-        ) as gluonts_temp, HybridContext(
-            net=net,
-            hybridize=self.hybridize,
-            static_alloc=True,
-            static_shape=True,
+        with (
+            tempfile.TemporaryDirectory(
+                prefix="gluonts-trainer-temp-"
+            ) as gluonts_temp,
+            HybridContext(
+                net=net,
+                hybridize=self.hybridize,
+                static_alloc=True,
+                static_shape=True,
+            ),
         ):
 
             def base_path() -> str:

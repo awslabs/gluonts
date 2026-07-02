@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 import pytest
-import sys
 
 import numpy as np
 import torch
