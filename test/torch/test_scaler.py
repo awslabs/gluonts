@@ -208,5 +208,9 @@ def test_stdscaler_no_overflow_large_values():
     s = scaler.StdScaler(keepdim=True)
     scaled, loc, scale = s(data, weights)
 
-    assert torch.all(torch.isfinite(scale)), "scale must be finite for large-valued inputs"
-    assert torch.all(torch.isfinite(scaled)), "scaled output must be finite for large-valued inputs"
+    assert torch.all(
+        torch.isfinite(scale)
+    ), "scale must be finite for large-valued inputs"
+    assert torch.all(
+        torch.isfinite(scaled)
+    ), "scaled output must be finite for large-valued inputs"
