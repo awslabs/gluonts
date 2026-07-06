@@ -227,9 +227,16 @@ class PyTorchLightningEstimator(Estimator):
             logger.info(
                 f"Loading best model from {checkpoint.best_model_path}"
             )
-            best_model = training_network.__class__.load_from_checkpoint(
-                checkpoint.best_model_path
-            )
+            try:
+                best_model = training_network.__class__.load_from_checkpoint(
+                    checkpoint.best_model_path
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to load checkpoint from {checkpoint.best_model_path}: {e}. "
+                    f"Using final model from training instead."
+                )
+                best_model = training_network
         else:
             best_model = training_network
 

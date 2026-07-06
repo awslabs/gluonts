@@ -598,3 +598,76 @@ class CountTrailingZeros(SimpleTransformation):
             np.array([trailing_zeros]) if self.as_array else trailing_zeros
         )
         return data
+
+
+class AddSeriesScale(SimpleTransformation):
+    """
+    Compute and add series-level scale to be used with forking sequence models.
+
+    This transformation computes the scale from the entire available time series
+    BEFORE forking. This ensures that all forked contexts from the same series
+    use the same scale value, which is critical for consistent scaling during
+    training and inference.
+
+    Without this transformation, the scale would be computed per-batch-element
+    AFTER forking, causing different fork positions from the same series to get
+    different scale values, leading to incorrect predictions.
+
+    Parameters
+    ----------
+    target_field
+        Field with target values (array) of time series.
+    observed_field
+        Field with observed indicator (array) of time series.
+        If not present, assumes all values are observed.
+    scale_field
+        Name of the new field to store the computed scale.
+    minimum_scale
+        Minimum value for the scale to avoid numerical issues.
+    """
+
+    @validated()
+    def __init__(
+        self,
+        target_field: str = FieldName.TARGET,
+        observed_field: str = FieldName.OBSERVED_VALUES,
+        scale_field: str = "series_scale",
+        minimum_scale: float = 1e-10,
+    ) -> None:
+        self.target_field = target_field
+        self.observed_field = observed_field
+        self.scale_field = scale_field
+        self.minimum_scale = minimum_scale
+
+    def transform(self, data: DataEntry) -> DataEntry:
+        """
+        Compute series-level scale using mean absolute value.
+
+        This matches the logic of MeanScaler but operates on the full series
+        before forking.
+        """
+        target = np.array(data[self.target_field])
+
+        # Get observed values indicator, default to all ones if not present
+        if self.observed_field in data:
+            observed = np.array(data[self.observed_field])
+        else:
+            observed = np.ones_like(target)
+
+        # Compute mean scale: sum of absolute observed values / number observed
+        # This matches MeanScaler's logic
+        abs_sum = np.abs(target * observed).sum()
+        num_observed = observed.sum()
+
+        if num_observed > 0:
+            scale = abs_sum / num_observed
+        else:
+            scale = 1.0
+
+        # Apply minimum scale threshold
+        scale = max(float(scale), self.minimum_scale)
+
+        # Store as float32 scalar (to match PyTorch default dtype)
+        data[self.scale_field] = np.float32(scale)
+
+        return data
