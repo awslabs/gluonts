@@ -32,6 +32,10 @@ from gluonts.torch.util import (
 )
 from gluonts.model import Input, InputSpec
 
+from .funcattn import make_functional_encoder
+
+ATTENTION_TYPES = ("softmax", "funcattn", "intention", "linear")
+
 
 def make_transformer(
     d_model: int,
@@ -40,13 +44,12 @@ def make_transformer(
     dim_feedforward: int,
     dropout: float,
 ) -> nn.TransformerEncoder:
-    """
-    A pre-norm Transformer stack, used as the bidirectional encoder / memory
+    """A pre-norm Transformer stack, used as the bidirectional encoder / memory
     cell and -- with a causal mask -- as the decoder.
 
     SMT's decoder reads the memory tokens as a prefix via causal self-
-    attention, so this is a masked ``nn.TransformerEncoder``, not a cross-
-    attention ``nn.TransformerDecoder``.
+    attention, so this is a masked ``nn.TransformerEncoder``, not a
+    cross- attention ``nn.TransformerDecoder``.
     """
     layer = nn.TransformerEncoderLayer(
         d_model=d_model,
@@ -61,9 +64,8 @@ def make_transformer(
 
 
 def uniformity_loss(z: torch.Tensor, t: float = 2.0) -> torch.Tensor:
-    """
-    Uniformity regularizer on the memory tokens (Wang & Isola, 2020), as used
-    by SMT to spread the memory representation over the hypersphere.
+    """Uniformity regularizer on the memory tokens (Wang & Isola, 2020), as
+    used by SMT to spread the memory representation over the hypersphere.
 
     ``z`` has shape ``(batch, num_tokens, dim)``; the loss is computed over the
     flattened set of (normalized) tokens.
@@ -80,8 +82,7 @@ def uniformity_loss(z: torch.Tensor, t: float = 2.0) -> torch.Tensor:
 
 
 class SMTModel(nn.Module):
-    """
-    Module implementing a forecasting model trained with Supervised Memory
+    """Module implementing a forecasting model trained with Supervised Memory
     Training (SMT) [Kumar & Isola, 2026].
 
     Like DeepAR, the deployed model is a recurrent network with a distribution
@@ -96,6 +97,11 @@ class SMTModel(nn.Module):
     The feature pipeline (lags, time/age features, static embeddings and mean
     scaling) is identical to ``DeepARModel``; the time features double as the
     positional encoding, so no extra positional embedding is used.
+
+    The bidirectional stacks (teacher encoder and recurrent memory cell) can
+    optionally use a functional-attention token mixer instead of softmax
+    attention via ``attn_type`` (``"funcattn"``, ``"intention"`` or
+    ``"linear"``); the causal decoder always uses softmax attention.
     """
 
     @validated()
@@ -117,6 +123,8 @@ class SMTModel(nn.Module):
         mem_tokens: int = 4,
         dim_feedforward: Optional[int] = None,
         dropout_rate: float = 0.1,
+        attn_type: str = "softmax",
+        num_slices: int = 32,
         coef_dyn: float = 0.1,
         coef_unif: float = 0.001,
         dmt_rollout_steps: Optional[int] = None,
@@ -129,6 +137,7 @@ class SMTModel(nn.Module):
     ) -> None:
         super().__init__()
 
+        assert attn_type in ATTENTION_TYPES
         assert distr_output.event_shape == ()
         assert num_feat_dynamic_real > 0
         assert num_feat_static_real > 0
@@ -187,19 +196,34 @@ class SMTModel(nn.Module):
             torch.randn(mem_tokens, d_model) * 0.02
         )
 
+        # the bidirectional stacks (teacher encoder and recurrent memory cell)
+        # can use a functional-attention token mixer; the causal decoder always
+        # uses softmax attention (functional mixers pool globally over the
+        # sequence and cannot honor the autoregressive mask).
+        def make_bidirectional(num_layers: int) -> nn.Module:
+            if attn_type == "softmax":
+                return make_transformer(
+                    d_model, nhead, num_layers, dim_feedforward, dropout_rate
+                )
+            return make_functional_encoder(
+                attn_type,
+                d_model,
+                nhead,
+                num_layers,
+                dim_feedforward,
+                dropout_rate,
+                num_slices,
+            )
+
         # teacher encoder (bidirectional): context features -> memory
-        self.encoder = make_transformer(
-            d_model, nhead, num_encoder_layers, dim_feedforward, dropout_rate
-        )
+        self.encoder = make_bidirectional(num_encoder_layers)
         # shared causal decoder: predictive-state head during training and
         # single-step readout head at deployment
         self.decoder = make_transformer(
             d_model, nhead, num_decoder_layers, dim_feedforward, dropout_rate
         )
         # recurrent memory cell (bidirectional over [memory; input token])
-        self.rnn_cell = make_transformer(
-            d_model, nhead, num_rnn_layers, dim_feedforward, dropout_rate
-        )
+        self.rnn_cell = make_bidirectional(num_rnn_layers)
 
     def describe_inputs(self, batch_size=1) -> InputSpec:
         return InputSpec(
@@ -263,8 +287,7 @@ class SMTModel(nn.Module):
         future_time_feat: torch.Tensor,
         future_target: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """
-        Build the per-step feature sequence (identical to ``DeepARModel``).
+        """Build the per-step feature sequence (identical to ``DeepARModel``).
 
         Returns a tuple ``(features, scale, static_feat)`` where ``features``
         has shape ``(batch, context_length - 1 + future_length, input_size)``.
@@ -313,11 +336,10 @@ class SMTModel(nn.Module):
         )
 
     def encode(self, features: torch.Tensor) -> torch.Tensor:
-        """
-        Encode a window of per-step features into a memory state.
+        """Encode a window of per-step features into a memory state.
 
-        ``features`` has shape ``(batch, length, input_size)``; returns the
-        memory state of shape ``(batch, mem_tokens, d_model)``.
+        ``features`` has shape ``(batch, length, input_size)``; returns
+        the memory state of shape ``(batch, mem_tokens, d_model)``.
         """
         batch_size = features.shape[0]
         tokens = self.input_norm(self.embed(features))
@@ -329,8 +351,7 @@ class SMTModel(nn.Module):
     def rnn_update(
         self, memory: torch.Tensor, features: torch.Tensor
     ) -> torch.Tensor:
-        """
-        One-step recurrent memory transition: incorporate the next per-step
+        """One-step recurrent memory transition: incorporate the next per-step
         feature vector into the memory state.
 
         ``memory``: ``(batch, mem_tokens, d_model)``;
@@ -344,9 +365,8 @@ class SMTModel(nn.Module):
     def decode(
         self, memory: torch.Tensor, features: torch.Tensor
     ) -> Tuple[torch.Tensor, ...]:
-        """
-        Predictive-state head: predict the distribution of the target at each
-        future step from the memory state and the (teacher-forced) future
+        """Predictive-state head: predict the distribution of the target at
+        each future step from the memory state and the (teacher-forced) future
         features.
 
         ``memory``: ``(batch, mem_tokens, d_model)``;
@@ -441,8 +461,7 @@ class SMTModel(nn.Module):
         future_target: torch.Tensor,
         future_observed_values: torch.Tensor,
     ) -> dict:
-        """
-        DAgger Memory Training loss (Kumar & Isola, 2026, Sec. 2.3).
+        """DAgger Memory Training loss (Kumar & Isola, 2026, Sec. 2.3).
 
         The single-step SMT dynamics loss only ever feeds the recurrent cell
         the teacher's (oracle) memory, so it never sees the drift that
@@ -506,8 +525,7 @@ class SMTModel(nn.Module):
         future_time_feat: torch.Tensor,
         num_parallel_samples: Optional[int] = None,
     ) -> torch.Tensor:
-        """
-        Deploy the SMT recurrent network: roll the memory cell forward with
+        """Deploy the SMT recurrent network: roll the memory cell forward with
         O(1) state, sampling autoregressively.
 
         The encoder produces the initial memory ``m`` from the past (as in the

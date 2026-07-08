@@ -71,9 +71,8 @@ TRAINING_INPUT_NAMES = PREDICTION_INPUT_NAMES + [
 
 
 class SMTEstimator(PyTorchLightningEstimator):
-    """
-    Estimator for a forecasting model trained with Supervised Memory Training
-    (SMT) [Kumar & Isola, 2026].
+    """Estimator for a forecasting model trained with Supervised Memory
+    Training (SMT) [Kumar & Isola, 2026].
 
     The model has the same probabilistic, covariate-aware setup as
     ``DeepAREstimator`` (lags, time/age features, static embeddings, mean
@@ -108,6 +107,15 @@ class SMTEstimator(PyTorchLightningEstimator):
         (default: ``4 * d_model``).
     dropout_rate
         Dropout regularization parameter.
+    attn_type
+        Token mixer for the bidirectional stacks (teacher encoder and recurrent
+        memory cell): ``"softmax"`` (default, standard attention), or one of the
+        functional-attention variants ``"funcattn"`` (Xu et al., 2026),
+        ``"intention"`` or ``"linear"``. The causal decoder always uses softmax
+        attention.
+    num_slices
+        Number of adaptive basis slices for ``attn_type="funcattn"`` (ignored
+        otherwise).
     coef_dyn
         Weight of the one-step memory dynamics loss.
     coef_unif
@@ -158,6 +166,8 @@ class SMTEstimator(PyTorchLightningEstimator):
         mem_tokens: int = 4,
         dim_feedforward: Optional[int] = None,
         dropout_rate: float = 0.1,
+        attn_type: str = "softmax",
+        num_slices: int = 32,
         coef_dyn: float = 0.1,
         coef_unif: float = 0.001,
         dmt_finetune_epochs: int = 0,
@@ -207,6 +217,8 @@ class SMTEstimator(PyTorchLightningEstimator):
         self.num_rnn_layers = num_rnn_layers
         self.mem_tokens = mem_tokens
         self.dim_feedforward = dim_feedforward
+        self.attn_type = attn_type
+        self.num_slices = num_slices
         self.coef_dyn = coef_dyn
         self.coef_unif = coef_unif
         self.dmt_finetune_epochs = dmt_finetune_epochs
@@ -412,6 +424,8 @@ class SMTEstimator(PyTorchLightningEstimator):
                 "mem_tokens": self.mem_tokens,
                 "dim_feedforward": self.dim_feedforward,
                 "dropout_rate": self.dropout_rate,
+                "attn_type": self.attn_type,
+                "num_slices": self.num_slices,
                 "coef_dyn": self.coef_dyn,
                 "coef_unif": self.coef_unif,
                 "dmt_rollout_steps": self.dmt_rollout_steps,

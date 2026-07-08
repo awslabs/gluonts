@@ -23,8 +23,8 @@ from .module import SMTModel
 
 
 class SMTLightningModule(pl.LightningModule):
-    """
-    A ``pl.LightningModule`` to train an ``SMTModel`` with PyTorch Lightning.
+    """A ``pl.LightningModule`` to train an ``SMTModel`` with PyTorch
+    Lightning.
 
     The training and validation losses are the total SMT objective
     (predictive-state NLL + dynamics MSE + uniformity); the individual
@@ -67,11 +67,9 @@ class SMTLightningModule(pl.LightningModule):
         return self.model(*args, **kwargs)
 
     def enable_dmt(self, dmt_lr: float) -> None:
-        """
-        Switch to the DMT finetuning phase: freeze the teacher (encoder,
+        """Switch to the DMT finetuning phase: freeze the teacher (encoder,
         decoder, embedding) and train only the recurrent cell on the on-policy
-        drift loss with a small learning rate.
-        """
+        drift loss with a small learning rate."""
         self.dmt = True
         self.dmt_lr = dmt_lr
         for param in self.model.parameters():
