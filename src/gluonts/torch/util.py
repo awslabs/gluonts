@@ -202,7 +202,7 @@ def slice_along_dim(a: torch.Tensor, dim: int, slice_: slice) -> torch.Tensor:
     """
     idx = [slice(None)] * len(a.shape)
     idx[dim] = slice_
-    return a[idx]
+    return a[tuple(idx)]
 
 
 def take_last(a: torch.Tensor, dim: int, num: int) -> torch.Tensor:
