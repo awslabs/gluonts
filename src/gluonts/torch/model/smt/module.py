@@ -101,7 +101,8 @@ class SMTModel(nn.Module):
     The bidirectional stacks (teacher encoder and recurrent memory cell) can
     optionally use a functional-attention token mixer instead of softmax
     attention via ``attn_type`` (``"funcattn"``, ``"intention"`` or
-    ``"linear"``); the causal decoder always uses softmax attention.
+    ``"linear"``), tuned by ``num_slices`` (funcattn) and ``ridge``
+    (intention); the causal decoder always uses softmax attention.
     """
 
     @validated()
@@ -125,6 +126,7 @@ class SMTModel(nn.Module):
         dropout_rate: float = 0.1,
         attn_type: str = "softmax",
         num_slices: int = 32,
+        ridge: float = 1e-3,
         coef_dyn: float = 0.1,
         coef_unif: float = 0.001,
         dmt_rollout_steps: Optional[int] = None,
@@ -213,6 +215,7 @@ class SMTModel(nn.Module):
                 dim_feedforward,
                 dropout_rate,
                 num_slices,
+                ridge,
             )
 
         # teacher encoder (bidirectional): context features -> memory

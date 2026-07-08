@@ -211,12 +211,13 @@ def make_mixer(
     d_model: int,
     nhead: int,
     num_slices: int,
+    ridge: float,
     dropout: float,
 ) -> nn.Module:
     if attn_type == "funcattn":
         return FuncAttnMixer(d_model, nhead, num_slices, dropout)
     if attn_type == "intention":
-        return IntentionMixer(d_model, nhead, dropout=dropout)
+        return IntentionMixer(d_model, nhead, ridge=ridge, dropout=dropout)
     if attn_type == "linear":
         return LinearAttentionMixer(d_model, nhead, dropout)
     raise ValueError(f"unknown functional attn_type: {attn_type}")
@@ -272,10 +273,11 @@ def make_functional_encoder(
     dim_feedforward: int,
     dropout: float,
     num_slices: int,
+    ridge: float,
 ) -> FunctionalEncoder:
     layers = [
         FunctionalEncoderLayer(
-            make_mixer(attn_type, d_model, nhead, num_slices, dropout),
+            make_mixer(attn_type, d_model, nhead, num_slices, ridge, dropout),
             d_model,
             dim_feedforward,
             dropout,

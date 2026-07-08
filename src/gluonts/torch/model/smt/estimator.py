@@ -116,6 +116,9 @@ class SMTEstimator(PyTorchLightningEstimator):
     num_slices
         Number of adaptive basis slices for ``attn_type="funcattn"`` (ignored
         otherwise).
+    ridge
+        Ridge regularization of the least-squares solve for
+        ``attn_type="intention"`` (ignored otherwise).
     coef_dyn
         Weight of the one-step memory dynamics loss.
     coef_unif
@@ -168,6 +171,7 @@ class SMTEstimator(PyTorchLightningEstimator):
         dropout_rate: float = 0.1,
         attn_type: str = "softmax",
         num_slices: int = 32,
+        ridge: float = 1e-3,
         coef_dyn: float = 0.1,
         coef_unif: float = 0.001,
         dmt_finetune_epochs: int = 0,
@@ -219,6 +223,7 @@ class SMTEstimator(PyTorchLightningEstimator):
         self.dim_feedforward = dim_feedforward
         self.attn_type = attn_type
         self.num_slices = num_slices
+        self.ridge = ridge
         self.coef_dyn = coef_dyn
         self.coef_unif = coef_unif
         self.dmt_finetune_epochs = dmt_finetune_epochs
@@ -426,6 +431,7 @@ class SMTEstimator(PyTorchLightningEstimator):
                 "dropout_rate": self.dropout_rate,
                 "attn_type": self.attn_type,
                 "num_slices": self.num_slices,
+                "ridge": self.ridge,
                 "coef_dyn": self.coef_dyn,
                 "coef_unif": self.coef_unif,
                 "dmt_rollout_steps": self.dmt_rollout_steps,
