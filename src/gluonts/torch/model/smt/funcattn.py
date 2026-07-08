@@ -70,8 +70,12 @@ class LinearAttentionMixer(nn.Module):
 class IntentionMixer(nn.Module):
     """IntentionNet-style attention: keys and queries share an encoder, the
     values are the tokens themselves, and the read-out is a ridge-regression
-    solve in token space (the FuncAttn paper shows functional attention
-    recovers this)."""
+    solve (the FuncAttn paper shows functional attention recovers this).
+
+    The solve uses the primal ``d x d`` form (Xu et al., 2026, Eq. 46), which
+    via the Woodbury identity is identical to the dual ``n x n`` form but is
+    linear -- not cubic -- in the sequence length.
+    """
 
     def __init__(
         self,
@@ -112,11 +116,17 @@ class IntentionMixer(nn.Module):
         query = split(kq)
         value = split(self.to_v(x))
 
+        # Q (K^T K + lambda I_d)^-1 K^T V: the "primal" ridge solve over the
+        # d x d Gram matrix (Xu et al., 2026, Eq. 46). Via the Woodbury identity
+        # this is identical to the dual Q K^T (K K^T + lambda I_n)^-1 V but only
+        # ever inverts a d x d matrix, so the cost is linear -- not cubic -- in
+        # the sequence length n.
         key_t = key.transpose(1, 2)
-        gram = torch.bmm(key, key_t)
-        identity = torch.eye(length, device=x.device, dtype=x.dtype)
-        alpha = torch.linalg.solve(gram + self.ridge * identity, value)
-        out = torch.bmm(torch.bmm(query, key_t), alpha)
+        gram = torch.bmm(key_t, key)
+        key_value = torch.bmm(key_t, value)
+        identity = torch.eye(dim_head, device=x.device, dtype=x.dtype)
+        operator = torch.linalg.solve(gram + self.ridge * identity, key_value)
+        out = torch.bmm(query, operator)
 
         out = (
             out.view(batch, heads, length, dim_head)
