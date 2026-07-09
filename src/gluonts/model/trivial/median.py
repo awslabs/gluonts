@@ -1,16 +1,3 @@
-# Copyright 2018 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License").
-# You may not use this file except in compliance with the License.
-# A copy of the License is located at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# or in the "license" file accompanying this file. This file is distributed
-# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
-# express or implied. See the License for the specific language governing
-# permissions and limitations under the License.
-
 from typing import Optional
 
 import numpy as np
@@ -25,12 +12,10 @@ from gluonts.model.predictor import RepresentablePredictor
 from gluonts.model.trivial.constant import ConstantPredictor
 from gluonts.pydantic import PositiveInt
 
-from scipy.stats import skewnorm
 
-
-class MeanPredictor(RepresentablePredictor):
+class MedianPredictor(RepresentablePredictor):
     """
-    A :class:`Predictor` that predicts the samples based on the mean of the
+    A :class:`Predictor` that predicts the samples based on the median of the
     last `context_length` elements of the input target.
 
     Parameters
@@ -62,31 +47,31 @@ class MeanPredictor(RepresentablePredictor):
         else:
             target = item["target"]
 
-        mean = np.nanmean(target)
+        median = np.nanmedian(target)
         std = np.nanstd(target)
         normal = np.random.standard_normal(self.shape)
 
         return SampleForecast(
-            samples=std * normal + mean,
+            samples=std * normal + median,
             start_date=forecast_start(item),
             item_id=item.get(FieldName.ITEM_ID),
         )
 
 
-class MovingAveragePredictor(RepresentablePredictor):
+class MovingMedianPredictor(RepresentablePredictor):
     """
-    A :class:`Predictor` that predicts the moving average based on the last
+    A :class:`Predictor` that predicts the moving median based on the last
     `context_length` elements of the input target.
 
-    If `prediction_length` = 1, the output is the moving average
+    If `prediction_length` = 1, the output is the moving median
     based on the last `context_length` elements of the input target.
 
-    If `prediction_length` > 1, the output is the moving average based on the
+    If `prediction_length` > 1, the output is the moving median based on the
     last `context_length` elements of the input target, where previously
-    calculated moving averages are appended at the end of the inputtarget.
+    calculated moving medians are appended at the end of the input target.
     Hence, for `prediction_length` larger than `context_length`, there will be
-    cases where the moving average is calculated on top of previous moving
-    averages.
+    cases where the moving median is calculated on top of previous moving
+    medians.
 
     Parameters
     ----------
@@ -120,7 +105,7 @@ class MovingAveragePredictor(RepresentablePredictor):
             else:
                 window = target
 
-            target.append(np.nanmean(window))
+            target.append(np.nanmedian(window))
 
         return SampleForecast(
             samples=np.array([target[-self.prediction_length :]]),
@@ -129,11 +114,11 @@ class MovingAveragePredictor(RepresentablePredictor):
         )
 
 
-class MeanEstimator(Estimator):
+class MedianEstimator(Estimator):
     """
-    An `Estimator` that computes the mean targets in the training data, in the
+    An `Estimator` that computes the median targets in the training data, in the
     trailing `prediction_length` observations, and produces a
-    `ConstantPredictor` that always predicts such mean value.
+    `ConstantPredictor` that always predicts such median value.
 
     Parameters
     ----------
@@ -167,32 +152,8 @@ class MeanEstimator(Estimator):
         )
 
         samples = np.broadcast_to(
-            array=contexts.mean(axis=0),
+            array=np.nanmedian(contexts, axis=0),
             shape=(self.num_samples, self.prediction_length),
         )
 
         return ConstantPredictor(samples=samples)
-
-
-class SkewedMeanPredictor(MeanPredictor):
-    def __init__(self, prediction_length, num_samples=20, skewness=10):
-        assert num_samples > 1, "num_samples must be set greater than 1"
-        self.skewness = skewness  # positive values are right skewed, negative values are left skewed
-        super().__init__(
-            prediction_length=prediction_length, num_samples=num_samples
-        )
-
-    def generate_skew(self, target):
-        mean = target.info["mean"]
-        std = target.info["std"]
-        skewed_targets = skewnorm.rvs(
-            a=self.skewness, loc=mean, scale=std, size=self.shape
-        )
-        return skewed_targets
-
-    def predict_item(self, item):
-        return SampleForecast(
-            samples=self.generate_skew(super().predict_item(item)),
-            start_date=forecast_start(item),
-            item_id=item.get(FieldName.ITEM_ID),
-        )
