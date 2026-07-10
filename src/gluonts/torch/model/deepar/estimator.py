@@ -45,6 +45,8 @@ from gluonts.transform import (
 from gluonts.torch.model.estimator import PyTorchLightningEstimator
 from gluonts.torch.model.predictor import PyTorchPredictor
 from gluonts.torch.distributions import DistributionOutput, StudentTOutput
+from gluonts.torch.distributions.output import Output
+from gluonts.torch.distributions.quantile_output import QuantileOutput
 from gluonts.transform.sampler import InstanceSampler
 
 from .lightning_module import DeepARLightningModule
@@ -163,7 +165,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         num_feat_static_real: int = 0,
         cardinality: Optional[List[int]] = None,
         embedding_dimension: Optional[List[int]] = None,
-        distr_output: DistributionOutput = StudentTOutput(),
+        distr_output: Output = StudentTOutput(),
         scaling: bool = True,
         default_scale: Optional[float] = None,
         lags_seq: Optional[List[int]] = None,
@@ -407,10 +409,20 @@ class DeepAREstimator(PyTorchLightningEstimator):
     ) -> PyTorchPredictor:
         prediction_splitter = self._create_instance_splitter(module, "test")
 
+        if isinstance(self.distr_output, QuantileOutput):
+            forecast_generator = self.distr_output.forecast_generator
+        else:
+            from gluonts.model.forecast_generator import (
+                SampleForecastGenerator,
+            )
+
+            forecast_generator = SampleForecastGenerator()
+
         return PyTorchPredictor(
             input_transform=transformation + prediction_splitter,
             input_names=PREDICTION_INPUT_NAMES,
             prediction_net=module,
+            forecast_generator=forecast_generator,
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
             device="auto",
