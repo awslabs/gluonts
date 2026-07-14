@@ -76,7 +76,7 @@ docs = [
     "myst-parser",
     "click",
     "orjson",
-    "black",
+    "black>=26.3.1",
     "holidays~=0.9",
     "matplotlib~=3.6",
 ]
@@ -174,7 +174,7 @@ dev = [
     "myst-parser",
     "click",
     "orjson",
-    "black",
+    "black>=26.3.1",
     "holidays~=0.9",
     "matplotlib~=3.6",
     # test
@@ -240,7 +240,7 @@ dev = [
     "types-PyYAML",
     # Linting and formatting
     "ruff==0.2.2",
-    "black==24.02",
+    "black>=26.3.1",
     # Documentation
     "ipython",
     "ipykernel~=6.5",
