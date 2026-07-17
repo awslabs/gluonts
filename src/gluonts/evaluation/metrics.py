@@ -105,6 +105,9 @@ def mase(
 
     See [HA21]_ for more details.
     """
+    if seasonal_error == 0:
+        return np.nan
+
     return np.mean(np.abs(target - forecast)) / seasonal_error
 
 
@@ -146,6 +149,9 @@ def msis(
 
     See [SSA20]_ for more details.
     """  # noqa: E501
+
+    if seasonal_error == 0:
+        return np.nan
 
     numerator = np.mean(
         upper_quantile
