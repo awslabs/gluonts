@@ -233,6 +233,7 @@ class PyTorchLightningEstimator(Estimator):
             best_model = training_network
             best_checkpoint = torch.load(
                 checkpoint.best_model_path,
+                # load to CPU to avoid a redundant copy on the model's device
                 map_location="cpu",
                 weights_only=True,
             )
