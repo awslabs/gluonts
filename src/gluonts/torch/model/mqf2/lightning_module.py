@@ -57,7 +57,6 @@ class MQF2MultiHorizonLightningModule(pl.LightningModule):
         patience: int = 10,
     ) -> None:
         super().__init__()
-        self.save_hyperparameters()
         self.model = MQF2MultiHorizonModel(**model_kwargs)
         self.lr = lr
         self.weight_decay = weight_decay
