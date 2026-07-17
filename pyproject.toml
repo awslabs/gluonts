@@ -97,8 +97,8 @@ test = [
 
 torch = [
     "torch>=1.13,<3",
-    "lightning>=2.2.2,<2.6",
-    "pytorch_lightning>=2.2.2,<2.6",
+    "lightning>=2.2.2,<2.7",
+    "pytorch_lightning>=2.2.2,<2.7",
     "scipy",
 ]
 
