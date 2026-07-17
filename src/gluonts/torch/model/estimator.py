@@ -228,7 +228,7 @@ class PyTorchLightningEstimator(Estimator):
                 f"Loading best model from {checkpoint.best_model_path}"
             )
             best_model = training_network.__class__.load_from_checkpoint(
-                checkpoint.best_model_path
+                checkpoint.best_model_path, weights_only=True
             )
         else:
             best_model = training_network
