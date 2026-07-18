@@ -40,6 +40,7 @@ from gluonts.torch.model.tide import TiDEEstimator
 from gluonts.torch.model.lag_tst import LagTSTEstimator
 from gluonts.torch.model.tft import TemporalFusionTransformerEstimator
 from gluonts.torch.model.wavenet import WaveNetEstimator
+from gluonts.torch.model.smt import SMTEstimator
 from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
 
 
@@ -79,6 +80,48 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
                 not importlib.util.find_spec("cpflows"),
                 reason="cpflows not installed",
             ),
+        ),
+        lambda dataset: SMTEstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=dataset.metadata.prediction_length,
+            d_model=8,
+            nhead=2,
+            num_encoder_layers=1,
+            num_decoder_layers=1,
+            num_rnn_layers=1,
+            mem_tokens=2,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda dataset: SMTEstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=dataset.metadata.prediction_length,
+            d_model=8,
+            nhead=2,
+            num_encoder_layers=1,
+            num_decoder_layers=1,
+            num_rnn_layers=1,
+            mem_tokens=2,
+            attn_type="funcattn",
+            num_slices=4,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda dataset: SMTEstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=dataset.metadata.prediction_length,
+            d_model=8,
+            nhead=2,
+            num_encoder_layers=1,
+            num_decoder_layers=1,
+            num_rnn_layers=1,
+            mem_tokens=2,
+            attn_type="linear",
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
         ),
         lambda dataset: SimpleFeedForwardEstimator(
             prediction_length=dataset.metadata.prediction_length,
@@ -237,6 +280,42 @@ def test_estimator_constant_dataset(
         lambda freq, prediction_length: TiDEEstimator(
             freq=freq,
             prediction_length=prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            num_feat_dynamic_real=3,
+            num_feat_static_real=1,
+            num_feat_static_cat=2,
+            cardinality=[2, 2],
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda freq, prediction_length: SMTEstimator(
+            freq=freq,
+            prediction_length=prediction_length,
+            d_model=8,
+            nhead=2,
+            num_encoder_layers=1,
+            num_decoder_layers=1,
+            num_rnn_layers=1,
+            mem_tokens=2,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            num_feat_dynamic_real=3,
+            num_feat_static_real=1,
+            num_feat_static_cat=2,
+            cardinality=[2, 2],
+            dmt_finetune_epochs=1,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda freq, prediction_length: SMTEstimator(
+            freq=freq,
+            prediction_length=prediction_length,
+            d_model=8,
+            nhead=2,
+            num_encoder_layers=1,
+            num_decoder_layers=1,
+            num_rnn_layers=1,
+            mem_tokens=2,
+            attn_type="intention",
             batch_size=4,
             num_batches_per_epoch=3,
             num_feat_dynamic_real=3,
@@ -419,6 +498,39 @@ def test_estimator_with_features(estimator_constructor):
 
     for f in islice(forecasts, 5):
         f.mean
+
+
+def test_smt_dmt_finetune_freezes_teacher_and_trains_rnn():
+    # the DMT finetuning phase must only train the recurrent cell and keep the
+    # SMT-trained teacher (encoder/decoder/embedding) frozen
+    estimator = SMTEstimator(
+        freq="h",
+        prediction_length=4,
+        context_length=12,
+        d_model=8,
+        nhead=2,
+        num_encoder_layers=1,
+        num_decoder_layers=1,
+        num_rnn_layers=1,
+        mem_tokens=2,
+        dropout_rate=0.0,
+    )
+    module = estimator.create_lightning_module()
+    encoder_before = {
+        name: param.clone()
+        for name, param in module.model.encoder.named_parameters()
+    }
+
+    module.enable_dmt(estimator.dmt_lr)
+
+    trainable = {
+        name.split(".")[0]
+        for name, param in module.model.named_parameters()
+        if param.requires_grad
+    }
+    assert trainable == {"rnn_cell"}
+    for name, param in module.model.encoder.named_parameters():
+        assert (param == encoder_before[name]).all()
 
 
 def test_estimator_recovers_if_exception_encountered_during_training():
