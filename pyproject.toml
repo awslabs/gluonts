@@ -37,7 +37,7 @@ keywords = [
 dependencies = [
     "numpy>=1.24,<2.5; python_version >= '3.12'",
     "numpy>=1.16,<2.5; python_version < '3.12'",
-    "pandas>=1.4,<4",
+    "pandas>=1.4,<3",
     "pydantic>=1.7,<3",
     "tqdm~=4.23",
     "toolz~=0.10",
@@ -100,10 +100,6 @@ torch = [
     "lightning>=2.2.2,<2.7",
     "pytorch_lightning>=2.2.2,<2.7",
     "scipy",
-]
-
-cpflows = [
-    "cpflows @ git+https://github.com/lostella/CP-Flow.git@gluonts-dependency",
 ]
 
 shell = [
