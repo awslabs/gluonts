@@ -37,7 +37,8 @@ keywords = [
 dependencies = [
     "numpy>=1.24,<2.5; python_version >= '3.12'",
     "numpy>=1.16,<2.5; python_version < '3.12'",
-    "pandas>=3,<4",
+    "pandas>=3,<4; python_version >= '3.11'",
+    "pandas>=1.4,<3; python_version < '3.11'",
     "pydantic>=1.7,<3",
     "tqdm~=4.23",
     "toolz~=0.10",
