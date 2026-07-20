@@ -18,17 +18,7 @@ import torch
 from gluonts.core.component import validated
 from gluonts.torch.model.deepar.module import DeepARModel
 
-try:
-    from cpflows.flows import ActNorm
-    from cpflows.icnn import PICNN
-except ImportError:
-    raise ImportError(
-        "MQF2 model requires the 'cpflows' package. "
-        "Install the cpflows extra to include it, for example: "
-        'pip install "gluonts[cpflows]" or uv sync --extra cpflows'
-    )
-
-
+from ._cpflows import ActNorm, PICNN
 from .distribution import MQF2DistributionOutput
 from .icnn_utils import DeepConvexNet, SequentialNet
 

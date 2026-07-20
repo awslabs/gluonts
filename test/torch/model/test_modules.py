@@ -14,8 +14,6 @@
 import pytest
 import torch
 
-import importlib.util
-
 from gluonts.torch.distributions import QuantileOutput
 from gluonts.torch.model.deepar import DeepARModel
 from gluonts.torch.model.simple_feedforward import SimpleFeedForwardModel
@@ -54,10 +52,6 @@ def assert_shapes_and_dtypes(tensors, shapes, dtypes):
             (4, 100, 12),
             torch.float,
             id="mqf2",
-            marks=pytest.mark.skipif(
-                not importlib.util.find_spec("cpflows"),
-                reason="cpflows not installed",
-            ),
         ),
         (
             SimpleFeedForwardModel(
