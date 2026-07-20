@@ -102,10 +102,6 @@ torch = [
     "scipy",
 ]
 
-cpflows = [
-    "cpflows @ git+https://github.com/lostella/CP-Flow.git@gluonts-dependency",
-]
-
 shell = [
     "flask~=3.0",
     "waitress~=3.0.1",
