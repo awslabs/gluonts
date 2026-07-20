@@ -705,17 +705,7 @@ class PosLinear(torch.nn.Linear):
         )
 
 
-class PICNNAbstractClass(torch.nn.Module):
-    icnns = dict()
-    icnn_names = []
-
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        cls.icnns[cls.__name__] = cls
-        cls.icnn_names.append(cls.__name__)
-
-
-class PICNN(PICNNAbstractClass):
+class PICNN(torch.nn.Module):
     def __init__(
         self,
         dim=2,
