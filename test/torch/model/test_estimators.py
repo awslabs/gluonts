@@ -11,7 +11,6 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import importlib.util
 import tempfile
 from functools import partial
 from itertools import islice
@@ -64,21 +63,15 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
             trainer_kwargs=dict(max_epochs=2),
             scaling=False,
         ),
-        pytest.param(
-            lambda dataset: __import__(
-                "gluonts.torch.model.mqf2",
-                fromlist=["MQF2MultiHorizonEstimator"],
-            ).MQF2MultiHorizonEstimator(
-                freq=dataset.metadata.freq,
-                prediction_length=dataset.metadata.prediction_length,
-                batch_size=4,
-                num_batches_per_epoch=3,
-                trainer_kwargs=dict(max_epochs=2),
-            ),
-            marks=pytest.mark.skipif(
-                not importlib.util.find_spec("cpflows"),
-                reason="cpflows not installed",
-            ),
+        lambda dataset: __import__(
+            "gluonts.torch.model.mqf2",
+            fromlist=["MQF2MultiHorizonEstimator"],
+        ).MQF2MultiHorizonEstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=dataset.metadata.prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
         ),
         lambda dataset: SimpleFeedForwardEstimator(
             prediction_length=dataset.metadata.prediction_length,
@@ -245,25 +238,19 @@ def test_estimator_constant_dataset(
             cardinality=[2, 2],
             trainer_kwargs=dict(max_epochs=2),
         ),
-        pytest.param(
-            lambda freq, prediction_length: __import__(
-                "gluonts.torch.model.mqf2",
-                fromlist=["MQF2MultiHorizonEstimator"],
-            ).MQF2MultiHorizonEstimator(
-                freq=freq,
-                prediction_length=prediction_length,
-                batch_size=4,
-                num_batches_per_epoch=3,
-                num_feat_dynamic_real=3,
-                num_feat_static_real=1,
-                num_feat_static_cat=2,
-                cardinality=[2, 2],
-                trainer_kwargs=dict(max_epochs=2),
-            ),
-            marks=pytest.mark.skipif(
-                not importlib.util.find_spec("cpflows"),
-                reason="cpflows not installed",
-            ),
+        lambda freq, prediction_length: __import__(
+            "gluonts.torch.model.mqf2",
+            fromlist=["MQF2MultiHorizonEstimator"],
+        ).MQF2MultiHorizonEstimator(
+            freq=freq,
+            prediction_length=prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            num_feat_dynamic_real=3,
+            num_feat_static_real=1,
+            num_feat_static_cat=2,
+            cardinality=[2, 2],
+            trainer_kwargs=dict(max_epochs=2),
         ),
         lambda freq, prediction_length: TemporalFusionTransformerEstimator(
             freq=freq,

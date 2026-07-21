@@ -51,7 +51,6 @@ class TemporalFusionTransformerLightningModule(pl.LightningModule):
         weight_decay: float = 0.0,
     ):
         super().__init__()
-        self.save_hyperparameters()
         self.model = TemporalFusionTransformerModel(**model_kwargs)
         self.lr = lr
         self.patience = patience
