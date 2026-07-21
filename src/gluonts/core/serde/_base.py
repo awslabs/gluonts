@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import dataclasses
 import textwrap
 from enum import Enum
 from functools import singledispatch, partial
@@ -295,6 +296,85 @@ decode_disallow = [
     input,
 ]
 
+# `decode` only instantiates types that `encode` is known to produce. A class
+# not covered by the checks below is rejected rather than instantiated.
+
+# Builtins that `encode` emits directly (tuples/sets, methods via `getattr`,
+# `functools.partial`).
+decode_allow_builtins = frozenset(
+    {tuple, set, frozenset, list, dict, getattr, partial}
+)
+
+# Fully-qualified names of the constructors emitted by the registered `encode`
+# implementations (see serde/np.py, serde/pd.py, mx/serde.py,
+# zebras/_period.py). Backends that add new `encode.register` handlers must add
+# their target here as well.
+decode_allow_fqnames = frozenset(
+    {
+        "numpy.dtype",
+        "numpy.array",
+        "numpy.datetime64",
+        "pandas.Timestamp",
+        "pandas.Period",
+        "pandas.tseries.frequencies.to_offset",
+        "mxnet.nd.array",
+        "mxnet.context.Context",
+        "gluonts.zebras.periods",
+    }
+)
+
+
+def _is_decode_safe(cls: Any, class_name: str) -> bool:
+    """
+    Whether ``cls`` (located from ``class_name``) is a type that
+    :func:`decode` should instantiate. Only targets that :func:`encode` is
+    known to produce are allowed.
+    """
+    if class_name in decode_allow_fqnames:
+        return True
+
+    if cls in decode_allow_builtins:
+        return True
+
+    if isinstance(cls, type):
+        # classes that explicitly opt into serde
+        if issubclass(cls, (Stateless, Stateful, PurePath, BaseModel)):
+            return True
+        # NamedTuple subclasses, encoded as instances
+        if (
+            issubclass(cls, tuple)
+            and hasattr(cls, "_fields")
+            and hasattr(cls, "_make")
+        ):
+            return True
+        # dataclasses are data containers; `encode` reconstructs them from
+        # their fields. This covers both `serde.dataclass` and plain
+        # dataclasses that expose `__init_passed_kwargs__` on instances.
+        if dataclasses.is_dataclass(cls):
+            return True
+
+    # `@validated` classes carry the pydantic model on their wrapped __init__;
+    # this marker is attached at import time (see component.validated).
+    if getattr(getattr(cls, "__init__", None), "Model", None) is not None:
+        return True
+
+    # `serde.dataclass` classes are turned into pydantic dataclasses at import
+    # time, which attach this marker (see serde._dataclass).
+    if hasattr(cls, "__pydantic_model__") or hasattr(
+        cls, "__pydantic_fields__"
+    ):
+        return True
+
+    # classes that expose their init kwargs, or are reconstructable via the
+    # pickle `__getnewargs_ex__` protocol -- both are encoding paths `encode`
+    # relies on for such types
+    if hasattr(cls, "__init_passed_kwargs__") or hasattr(
+        cls, "__getnewargs_ex__"
+    ):
+        return True
+
+    return False
+
 
 def decode(r: Any) -> Any:
     """
@@ -327,7 +407,16 @@ def decode(r: Any) -> Any:
             raise ValueError(f"{r['class']} cannot be run.")
 
         if kind == Kind.Type:
+            # `Kind.Type` returns the located object without calling it.
             return cls
+
+        # `Kind.Instance` and `Kind.Stateful` both instantiate `cls`, so it is
+        # restricted to the types `encode` can produce.
+        if not _is_decode_safe(cls, r["class"]):
+            raise ValueError(
+                f"{r['class']} is not a serde-decodable type and "
+                f"cannot be instantiated during decoding."
+            )
 
         args = decode(r.get("args", []))
         kwargs = decode(r.get("kwargs", {}))
