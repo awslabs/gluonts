@@ -20,6 +20,7 @@ import pytest
 import pandas as pd
 import numpy as np
 from lightning import seed_everything
+from lightning.pytorch.callbacks import Callback
 
 from gluonts.dataset.repository import get_dataset
 from gluonts.model.predictor import Predictor
@@ -31,7 +32,6 @@ from gluonts.torch.model.deep_npts import (
     DeepNPTSNetworkSmooth,
 )
 from gluonts.torch.model.forecast import DistributionForecast
-from gluonts.torch.model.mqf2 import MQF2MultiHorizonEstimator
 from gluonts.torch.model.simple_feedforward import SimpleFeedForwardEstimator
 from gluonts.torch.model.d_linear import DLinearEstimator
 from gluonts.torch.model.patch_tst import PatchTSTEstimator
@@ -63,7 +63,10 @@ from gluonts.torch.distributions import ImplicitQuantileNetworkOutput
             trainer_kwargs=dict(max_epochs=2),
             scaling=False,
         ),
-        lambda dataset: MQF2MultiHorizonEstimator(
+        lambda dataset: __import__(
+            "gluonts.torch.model.mqf2",
+            fromlist=["MQF2MultiHorizonEstimator"],
+        ).MQF2MultiHorizonEstimator(
             freq=dataset.metadata.freq,
             prediction_length=dataset.metadata.prediction_length,
             batch_size=4,
@@ -235,7 +238,10 @@ def test_estimator_constant_dataset(
             cardinality=[2, 2],
             trainer_kwargs=dict(max_epochs=2),
         ),
-        lambda freq, prediction_length: MQF2MultiHorizonEstimator(
+        lambda freq, prediction_length: __import__(
+            "gluonts.torch.model.mqf2",
+            fromlist=["MQF2MultiHorizonEstimator"],
+        ).MQF2MultiHorizonEstimator(
             freq=freq,
             prediction_length=prediction_length,
             batch_size=4,
@@ -400,3 +406,29 @@ def test_estimator_with_features(estimator_constructor):
 
     for f in islice(forecasts, 5):
         f.mean
+
+
+def test_estimator_recovers_if_exception_encountered_during_training():
+    class RaiseOnEpoch(Callback):
+        def __init__(self):
+            self.raised = False
+
+        def on_train_epoch_start(self, trainer, pl_module):
+            if trainer.current_epoch == 3:
+                self.raised = True
+                raise ValueError("Surprise!")
+
+    callback = RaiseOnEpoch()
+
+    dataset = get_dataset("constant")
+    estimator = DeepAREstimator(
+        freq=dataset.metadata.freq,
+        prediction_length=5,
+        batch_size=4,
+        num_batches_per_epoch=5,
+        trainer_kwargs=dict(max_epochs=50, callbacks=[callback]),
+    )
+    predictor = estimator.train(dataset.train)
+    forecast = list(predictor.predict(dataset.train))
+    assert callback.raised
+    assert isinstance(forecast[0].mean, np.ndarray)

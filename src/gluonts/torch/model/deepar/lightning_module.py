@@ -53,7 +53,6 @@ class DeepARLightningModule(pl.LightningModule):
         patience: int = 10,
     ) -> None:
         super().__init__()
-        self.save_hyperparameters()
         self.model = DeepARModel(**model_kwargs)
         self.lr = lr
         self.weight_decay = weight_decay

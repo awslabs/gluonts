@@ -23,6 +23,7 @@ from pathlib import Path
 
 import tarfile
 from gluonts.dataset.common import Dataset, load_datasets
+from gluonts.util import safe_extractall
 from gluonts.dataset.repository import (
     default_dataset_path,
 )
@@ -36,8 +37,8 @@ def extract_dataset(dataset_name: str):
         return
 
     compressed_data_path = Path("datasets")
-    tf = tarfile.open(compressed_data_path / (dataset_name + ".tar.gz"))
-    tf.extractall(default_dataset_path)
+    with tarfile.open(compressed_data_path / (dataset_name + ".tar.gz")) as tf:
+        safe_extractall(tf, default_dataset_path)
 
 
 def pivot_dataset(dataset):

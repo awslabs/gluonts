@@ -18,9 +18,7 @@ import torch
 from gluonts.core.component import validated
 from gluonts.torch.model.deepar.module import DeepARModel
 
-from cpflows.flows import ActNorm
-from cpflows.icnn import PICNN
-
+from ._cpflows import ActNorm, PICNN
 from .distribution import MQF2DistributionOutput
 from .icnn_utils import DeepConvexNet, SequentialNet
 

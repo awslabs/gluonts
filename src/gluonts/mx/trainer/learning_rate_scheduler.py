@@ -50,7 +50,7 @@ class Objective:
 
 @dataclass
 class Min(Objective):
-    best: float = np.Inf
+    best: float = float("inf")
 
     def should_update(self, metric: float) -> bool:
         return metric < self.best
@@ -58,7 +58,7 @@ class Min(Objective):
 
 @dataclass
 class Max(Objective):
-    best: float = -np.Inf
+    best: float = -float("inf")
 
     def should_update(self, metric: float) -> bool:
         return metric > self.best

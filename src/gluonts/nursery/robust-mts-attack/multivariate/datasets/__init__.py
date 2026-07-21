@@ -10,17 +10,3 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
-"""
-Version information for GluonTS.
-
-The version is defined in pyproject.toml and read from package metadata.
-"""
-
-from importlib.metadata import version, PackageNotFoundError
-
-try:
-    __version__ = version("gluonts")
-except PackageNotFoundError:
-    # Package is not installed (e.g., running from source without install)
-    __version__ = "0.0.0.dev0"

@@ -79,7 +79,8 @@ def test_get_smooth_mask_correct(labels):
 
     # check smooth mask mins correct
     assert np.allclose(
-        smooth_mask.asnumpy().min(axis=-1), np.ones(2) * 0.2 / 7  # alpha / K
+        smooth_mask.asnumpy().min(axis=-1),
+        np.ones(2) * 0.2 / 7,  # alpha / K
     )
 
 

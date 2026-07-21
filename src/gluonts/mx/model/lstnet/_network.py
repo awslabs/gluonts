@@ -140,7 +140,10 @@ class LSTNetBase(nn.HybridBlock):
 
     def _skip_rnn_layer(self, F, x: Tensor) -> Tensor:
         skip_c = F.slice_axis(
-            x, axis=2, begin=-self.channel_skip_count, end=None  # NCT
+            x,
+            axis=2,
+            begin=-self.channel_skip_count,
+            end=None,  # NCT
         )
         skip_c = F.reshape(
             skip_c, shape=(0, 0, -1, self.skip_size)

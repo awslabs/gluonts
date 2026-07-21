@@ -8,7 +8,7 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        python-version: ['3.8']
+        python-version: ['3.14']
         platform: [ubuntu-latest]
 
     runs-on: ${{ matrix.platform }}
@@ -16,29 +16,19 @@ jobs:
     if: contains(github.event.pull_request.labels.*.name, 'pr:test-nursery')
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+    - uses: actions/checkout@v7
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v8.2.0
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install MXNet (Linux)
-      if: ${{ runner.os == 'Linux' }}
-      run: pip install mxnet~=1.8.0
-    - name: Install MXNet (Windows)
-      if: ${{ runner.os == 'Windows' }}
-      run: pip install mxnet~=1.7.0
-    - name: Install other dependencies
-      run: |
-        pip install "torch==1.10.0" "pytorch-lightning~=1.5" \
-          -f https://download.pytorch.org/whl/cpu/torch_stable.html
-        pip install 
-        pip install -e ".[shell]" \
-          -r requirements/requirements-test.txt \
-          -r requirements/requirements-extras-sagemaker-sdk.txt \
-          -r requirements/requirements-extras-m-competitions.txt \
-          -r requirements/requirements-rotbaum.txt \
-          -r requirements/requirements-extras-anomaly-evaluation.txt \
-          -r requirements/requirements-extras-autogluon.txt
+        version: "latest"
+
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: uv sync --no-dev --python ${{ matrix.python-version }} --extra torch --extra shell --extra test --extra m-competitions --extra rotbaum
+
     - name: Test with pytest
       run: |
-        pytest -n2 --doctest-modules test/nursery
+        uv run --no-sync pytest -n2 --doctest-modules test/nursery

@@ -1,2 +1,0 @@
-lightgbm>=2.3.1
-# scikit-garden @ https://github.com/scikit-garden/scikit-garden/archive/refs/heads/master.zip

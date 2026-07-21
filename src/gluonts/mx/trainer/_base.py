@@ -209,13 +209,16 @@ class Trainer:
 
         logger.info("Start model training")
 
-        with tempfile.TemporaryDirectory(
-            prefix="gluonts-trainer-temp-"
-        ) as gluonts_temp, HybridContext(
-            net=net,
-            hybridize=self.hybridize,
-            static_alloc=True,
-            static_shape=True,
+        with (
+            tempfile.TemporaryDirectory(
+                prefix="gluonts-trainer-temp-"
+            ) as gluonts_temp,
+            HybridContext(
+                net=net,
+                hybridize=self.hybridize,
+                static_alloc=True,
+                static_shape=True,
+            ),
         ):
 
             def base_path() -> str:
@@ -227,7 +230,7 @@ class Trainer:
             best_epoch_info = {
                 "params_path": "{}-{}.params".format(base_path(), "init"),
                 "epoch_no": -1,
-                "score": np.Inf,
+                "score": float("inf"),
             }
 
             optimizer = mx.optimizer.Adam(

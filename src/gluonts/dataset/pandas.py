@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field, InitVar
-from typing import Any, Iterable, Optional, Type, Union, cast
+from typing import Any, Iterable, Optional, Type, Union
 
 import numpy as np
 import pandas as pd
@@ -305,7 +305,7 @@ class PandasDataset:
             other_static_features = pd.DataFrame()
 
         logger.info(f"Grouping data by '{item_id}'; this may take some time.")
-        pairs = list(dataframe.groupby(item_id))
+        pairs = list(dataframe.groupby(item_id, observed=True))
 
         return cls(
             dataframes=pairs,
@@ -351,4 +351,4 @@ def is_uniform(index: pd.PeriodIndex) -> bool:
         False
     """
 
-    return cast(bool, np.all(np.diff(index.asi8) == index.freq.n))
+    return bool(np.all(np.diff(index.asi8) == index.freq.n))

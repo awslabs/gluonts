@@ -87,7 +87,7 @@ class GatedResidualNetwork(HybridBlock):
                     weight_initializer=init.Xavier(),
                 )
             )
-            self.mlp.add(nn.Dropout(dropout)),
+            (self.mlp.add(nn.Dropout(dropout)),)
             self.mlp.add(
                 nn.Dense(
                     units=self.d_output * 2,

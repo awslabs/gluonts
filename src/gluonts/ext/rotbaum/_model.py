@@ -340,11 +340,11 @@ class QRX:
             The quantile of the associated true value bin.
         """
         if feature_vector_in_train not in self.quantile_dicts[quantile]:
-            self.quantile_dicts[quantile][feature_vector_in_train] = (
-                np.percentile(
-                    self.id_to_bins[self.preds_to_id[feature_vector_in_train]],
-                    quantile * 100,
-                )
+            self.quantile_dicts[quantile][
+                feature_vector_in_train
+            ] = np.percentile(
+                self.id_to_bins[self.preds_to_id[feature_vector_in_train]],
+                quantile * 100,
             )
         return self.quantile_dicts[quantile][feature_vector_in_train]
 
@@ -385,7 +385,8 @@ class QRX:
                 )
                 predicted_values.append(
                     self._get_and_cache_quantile_computation(
-                        closest_pred, quantile  # type: ignore
+                        closest_pred,  # type: ignore
+                        quantile,
                     )
                 )
         return predicted_values

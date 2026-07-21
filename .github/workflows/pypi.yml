@@ -9,23 +9,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Get tags
-      run: git fetch --tags origin
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v4
+    - uses: actions/checkout@v7
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v8.2.0
       with:
-        python-version: '3.8'
-    - name: Install dependencies
+        version: "latest"
+
+    - name: Set up Python
+      run: uv python install 3.14
+
+    - name: Validate version matches tag
       run: |
-        python -m pip install -U pip
-        python -m pip install setuptools wheel
-    - name: Create `dist` folder
-      run: |
-        python setup.py sdist bdist_wheel
+        # Extract version from pyproject.toml
+        PACKAGE_VERSION=$(uv run python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+        # Extract version from git tag (remove 'v' prefix if present)
+        TAG_VERSION="${GITHUB_REF_NAME#v}"
+        
+        echo "Package version: $PACKAGE_VERSION"
+        echo "Tag version: $TAG_VERSION"
+        
+        if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+          echo "ERROR: Version mismatch!"
+          echo "pyproject.toml version ($PACKAGE_VERSION) does not match tag ($TAG_VERSION)"
+          echo "Please update the version in pyproject.toml to match the release tag."
+          exit 1
+        fi
+        
+        echo "Version validation passed!"
+
+    - name: Build package
+      run: uv build
+
     - name: Publish package
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
-        skip_existing: true
+        skip-existing: true

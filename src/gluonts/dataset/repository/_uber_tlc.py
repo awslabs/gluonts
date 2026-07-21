@@ -28,7 +28,7 @@ def generate_uber_dataset(
     prediction_length: int,
     dataset_writer: DatasetWriter,
 ):
-    subsets = {"daily": "1D", "hourly": "1H"}
+    subsets = {"daily": "1D", "hourly": "1h"}
     assert (
         uber_freq.lower() in subsets
     ), f"invalid uber_freq='{uber_freq}'. Allowed values: {subsets.keys()}"

@@ -16,6 +16,7 @@ import logging
 
 import numpy as np
 import lightning.pytorch as pl
+import torch
 import torch.nn as nn
 
 from gluonts.core.component import validated
@@ -194,7 +195,7 @@ class PyTorchLightningEstimator(Estimator):
 
         monitor = "train_loss" if validation_data is None else "val_loss"
         checkpoint = pl.callbacks.ModelCheckpoint(
-            monitor=monitor, mode="min", verbose=True
+            monitor=monitor, mode="min", verbose=True, save_weights_only=True
         )
 
         custom_callbacks = self.trainer_kwargs.pop("callbacks", [])
@@ -206,20 +207,37 @@ class PyTorchLightningEstimator(Estimator):
             }
         )
 
-        trainer.fit(
-            model=training_network,
-            train_dataloaders=training_data_loader,
-            val_dataloaders=validation_data_loader,
-            ckpt_path=ckpt_path,
-        )
+        try:
+            trainer.fit(
+                model=training_network,
+                train_dataloaders=training_data_loader,
+                val_dataloaders=validation_data_loader,
+                ckpt_path=ckpt_path,
+            )
+        except Exception as e:
+            if checkpoint.best_model_path == "":
+                logger.error("Training failed with no checkpoint available")
+                raise
+            else:
+                logger.warning(
+                    "Recovering from a checkpoint after training failed "
+                    f"with the following exception:\n {e}"
+                )
 
         if checkpoint.best_model_path != "":
             logger.info(
                 f"Loading best model from {checkpoint.best_model_path}"
             )
-            best_model = training_network.__class__.load_from_checkpoint(
-                checkpoint.best_model_path
+            # Restore the best weights into the already-built module. The
+            # checkpoint holds only tensors, so ``weights_only=True`` works.
+            best_model = training_network
+            best_checkpoint = torch.load(
+                checkpoint.best_model_path,
+                # load to CPU to avoid a redundant copy on the model's device
+                map_location="cpu",
+                weights_only=True,
             )
+            best_model.load_state_dict(best_checkpoint["state_dict"])
         else:
             best_model = training_network
 
