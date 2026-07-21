@@ -144,6 +144,27 @@ def test_np_str_dtype():
     serde.decode(serde.encode(a.dtype)) == a.dtype
 
 
+def test_serde_init_passed_kwargs():
+    # classes encoded via `__init_passed_kwargs__` (e.g. zebras periods) must
+    # round-trip through the allowlist
+    from gluonts import zebras as zb
+
+    for obj in [
+        zb.period("2021-01-01", "D"),
+        zb.periods("2021-01-01", "D", 10),
+    ]:
+        assert serde.decode(serde.encode(obj)) == obj
+
+
+def test_serde_dataclass_instance():
+    # dataclasses that set `__init_passed_kwargs__` on the instance (not the
+    # class), such as `transform.Chain`, must round-trip through the allowlist
+    from gluonts.transform import Chain, Identity
+
+    chain = Chain([Identity(), Identity()])
+    assert serde.decode(serde.encode(chain)) == chain
+
+
 @pytest.mark.parametrize(
     "obj",
     [
@@ -165,3 +186,62 @@ def test_np_str_dtype():
 def test_decode_disallow(obj):
     with pytest.raises(ValueError):
         serde.decode(obj)
+
+
+# `decode` only instantiates types that `encode` is known to produce; other
+# classes should be rejected rather than instantiated.
+@pytest.mark.parametrize(
+    "class_name",
+    [
+        "subprocess.run",
+        "subprocess.Popen",
+        "subprocess.call",
+        "os.system",
+        "os.popen",
+        "ctypes.CDLL",
+        "builtins.__import__",
+        "webbrowser.open",
+    ],
+)
+@pytest.mark.parametrize("kind", ["instance", "stateful"])
+def test_decode_rejects_arbitrary_callables(class_name, kind):
+    with pytest.raises(ValueError):
+        serde.decode(
+            {
+                "__kind__": kind,
+                "class": class_name,
+                "args": [],
+                "kwargs": {},
+            }
+        )
+
+
+def test_decode_rejects_unknown_class_in_predictor(tmp_path):
+    # End-to-end: a predictor.json referencing a class `encode` never produces
+    # is rejected when loaded through the deserialize API.
+    from gluonts.model.predictor import Predictor
+
+    canary = tmp_path / "canary"
+    (tmp_path / "gluonts-config.json").write_text(
+        serde.dump_json(
+            {
+                "type": "gluonts.model.predictor.RepresentablePredictor",
+                "version": "test",
+            }
+        )
+    )
+    (tmp_path / "predictor.json").write_text(
+        serde.dump_json(
+            {
+                "__kind__": "instance",
+                "class": "subprocess.run",
+                "args": [["/bin/sh", "-c", f"touch {canary}"]],
+                "kwargs": {},
+            }
+        )
+    )
+
+    with pytest.raises(ValueError):
+        Predictor.deserialize(tmp_path)
+
+    assert not canary.exists()

@@ -37,23 +37,26 @@ class SinusoidalPositionalEmbedding(nn.Embedding):
     @staticmethod
     def _init_weight(out: torch.Tensor) -> torch.Tensor:
         """
-        Features are not interleaved.
+        Build sinusoidal positional embeddings.
 
-        The cos features are in the 2nd half of the vector. [dim // 2:]
+        Features are not interleaved: sin features in the first half,
+        cos features in the second half.
         """
         n_pos, dim = out.shape
+        out.requires_grad = False
         position_enc = np.array(
             [
                 [pos / np.power(10000, 2 * (j // 2) / dim) for j in range(dim)]
                 for pos in range(n_pos)
             ]
         )
-        # set early to avoid an error in pytorch-1.8+
-        out.requires_grad = False
-
         sentinel = dim // 2 if dim % 2 == 0 else (dim // 2) + 1
-        out[:, 0:sentinel] = torch.FloatTensor(np.sin(position_enc[:, 0::2]))
-        out[:, sentinel:] = torch.FloatTensor(np.cos(position_enc[:, 1::2]))
+        out[:, 0:sentinel] = torch.as_tensor(
+            np.sin(position_enc[:, 0::2]), dtype=out.dtype, device=out.device
+        )
+        out[:, sentinel:] = torch.as_tensor(
+            np.cos(position_enc[:, 1::2]), dtype=out.dtype, device=out.device
+        )
         out.detach_()
         return out
 
