@@ -49,7 +49,6 @@ class ITransformerLightningModule(pl.LightningModule):
         weight_decay: float = 1e-8,
     ):
         super().__init__()
-        self.save_hyperparameters()
         self.model = ITransformerModel(**model_kwargs)
         self.num_parallel_samples = num_parallel_samples
         self.lr = lr

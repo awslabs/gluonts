@@ -289,7 +289,7 @@ def test_join_items():
     ]
 
     with pytest.raises(Exception):
-        oin_items(left, right, "strict")
+        list(join_items(left, right, "strict"))
 
 
 @pytest.mark.parametrize(

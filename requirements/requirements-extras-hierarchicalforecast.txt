@@ -1,2 +1,0 @@
-statsforecast~=1.0
-hierarchicalforecast~=0.3

@@ -4,7 +4,7 @@
 # You can set these variables from the command line, and also
 # from the environment for the first two.
 SPHINXOPTS    ?=
-SPHINXBUILD   ?= sphinx-build
+SPHINXBUILD   ?= uv run sphinx-build
 SOURCEDIR     = .
 BUILDDIR      = _build
 
@@ -17,7 +17,7 @@ help:
 apidoc:
 	@rm -Rf api/gluonts
 
-	@sphinx-apidoc \
+	@uv run sphinx-apidoc \
 		--implicit-namespaces \
 		--separate \
 		--module-first \

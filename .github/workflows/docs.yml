@@ -15,23 +15,23 @@ jobs:
       contents: read
 
     steps:
-    - uses: actions/checkout@v3
-    - uses: extractions/setup-just@v1
+    - uses: actions/checkout@v7
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v8.2.0
+      with:
+        version: "latest"
+
+    - uses: extractions/setup-just@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
+    - name: Set up Python
+      run: uv python install 3.12
 
     - name: Install dependencies
       run: |
-        pip install ".[arrow]" \
-          -r requirements/requirements-docs.txt \
-          -r requirements/requirements-mxnet.txt \
-          -r requirements/requirements-pytorch.txt \
-          -r requirements/requirements-rotbaum.txt \
-          -r requirements/requirements-extras-statsforecast.txt
+        uv sync --python 3.12 --extra arrow --extra docs --extra torch --extra rotbaum --extra statsforecast
 
     - name: Install Pandoc
       run: |
@@ -50,7 +50,7 @@ jobs:
 
     - name: Configure AWS Credentials
       if: ${{ github.event_name == 'push' && ( github.ref_name == 'dev' || startsWith(github.ref_name, 'v0.')) }}
-      uses: aws-actions/configure-aws-credentials@v2
+      uses: aws-actions/configure-aws-credentials@v4
       with:
         role-to-assume: arn:aws:iam::671929771060:role/WebsitePublisher
         role-session-name: docs-push

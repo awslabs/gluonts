@@ -42,9 +42,11 @@ import numpy as np
 
 @runtime_checkable
 class SizedIterable(Protocol):
-    def __len__(self): ...
+    def __len__(self):
+        ...
 
-    def __iter__(self): ...
+    def __iter__(self):
+        ...
 
 
 T = TypeVar("T")

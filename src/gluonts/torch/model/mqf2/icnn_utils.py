@@ -23,11 +23,11 @@
 
 from typing import Optional, Tuple, List, Union
 
-from cpflows.flows import SequentialFlow, DeepConvexFlow
-
 import torch
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
+
+from ._cpflows import SequentialFlow, DeepConvexFlow
 
 
 class DeepConvexNet(DeepConvexFlow):
