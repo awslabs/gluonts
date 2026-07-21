@@ -281,6 +281,13 @@ class PandasDataset:
         PandasDataset
             Dataset containing series data from the given long dataframe.
         """
+        # Operate on a shallow copy so we don't mutate the caller's
+        # DataFrame index. Before this guard, both branches below
+        # rebound `dataframe.index`, which is a visible side effect:
+        # callers that iterate the same df after constructing the
+        # dataset would see a different index. See GH-3263.
+        dataframe = dataframe.copy(deep=False)
+
         if timestamp is not None:
             logger.info(f"Indexing data by '{timestamp}'.")
             dataframe.index = pd.to_datetime(dataframe[timestamp])

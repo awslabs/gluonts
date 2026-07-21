@@ -391,3 +391,65 @@ def _testcase_dataframes_with_index(
 def test_pandas_dataset_cases(dataset, expected_entries):
     for entry, expected_entry in zip(dataset, expected_entries):
         assert_recursively_equal(entry, expected_entry)
+
+
+def test_from_long_dataframe_does_not_mutate_caller_index():
+    """
+    Regression test for GH-3263.
+
+    ``PandasDataset.from_long_dataframe`` used to rebind the caller's
+    ``DataFrame.index`` in-place when ``timestamp`` was provided or when
+    the existing index was not a ``DatetimeIndex``. That side-effect
+    silently broke any caller that iterated over the same DataFrame
+    afterwards. The constructor should now leave the caller's
+    DataFrame untouched.
+    """
+    N, T = 2, 5
+    timestamps = pd.date_range("2021-01-01", periods=T, freq="1D").to_list()
+    df = pd.DataFrame(
+        {
+            "time": 2 * timestamps,
+            "target": np.arange(N * T, dtype=float),
+            "item": T * ["A"] + T * ["B"],
+        }
+    )
+    # Caller-visible state we expect to be preserved verbatim.
+    original_index = df.index.copy()
+    original_columns = list(df.columns)
+    original_values = df.values.copy()
+
+    pandas.PandasDataset.from_long_dataframe(
+        df, item_id="item", timestamp="time", freq="1D"
+    )
+
+    pd.testing.assert_index_equal(df.index, original_index)
+    assert list(df.columns) == original_columns
+    np.testing.assert_array_equal(df.values, original_values)
+
+
+def test_from_long_dataframe_does_not_mutate_caller_when_index_not_datetime():
+    """
+    Regression test for GH-3263 — the second branch (no ``timestamp``
+    argument, but existing index is not already a DatetimeIndex). The
+    old code path did ``dataframe.index = pd.to_datetime(dataframe.index)``
+    which mutated the caller's frame.
+    """
+    N, T = 2, 4
+    # Use a string index so the constructor takes the
+    # "not isinstance(index, DatetimeIndexOpsMixin)" branch.
+    string_index = [
+        ts.isoformat()
+        for ts in pd.date_range("2021-01-01", periods=T, freq="1D")
+    ]
+    df = pd.DataFrame(
+        {
+            "target": np.arange(N * T, dtype=float),
+            "item": T * ["A"] + T * ["B"],
+        },
+        index=2 * string_index,
+    )
+    original_index = df.index.copy()
+
+    pandas.PandasDataset.from_long_dataframe(df, item_id="item", freq="1D")
+
+    pd.testing.assert_index_equal(df.index, original_index)
