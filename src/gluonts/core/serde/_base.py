@@ -11,21 +11,19 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-import dataclasses
 import textwrap
 from enum import Enum
 from functools import singledispatch, partial
 from pathlib import PurePath
 from pydoc import locate
-from typing import Any, NamedTuple, cast
+from typing import Any, List, NamedTuple, Optional, Set, Tuple, cast
 
 from toolz.dicttoolz import valmap
 
 from gluonts.core import fqname_for
 from gluonts.pydantic import BaseModel
 
-bad_type_msg = textwrap.dedent(
-    """
+bad_type_msg = textwrap.dedent("""
     Cannot serialize type {}. See the documentation of the `encode` and
     `validate` functions at
 
@@ -36,8 +34,7 @@ bad_type_msg = textwrap.dedent(
         https://docs.python.org/3/library/pickle.html#object.__getnewargs_ex__
 
     for more information how to make this type serializable.
-    """
-).lstrip()
+    """).lstrip()
 
 
 class StatelessMeta(type):
@@ -288,29 +285,64 @@ def encode_partial(v: partial) -> Any:
     }
 
 
-decode_disallow = [
-    eval,
-    exec,
-    compile,
-    open,
-    input,
-]
+class DecodeRegistry:
+    """Allowlist for constructors used by :func:`decode`."""
 
-# `decode` only instantiates types that `encode` is known to produce. A class
-# not covered by the checks below is rejected rather than instantiated.
+    def __init__(self) -> None:
+        self._targets: Set[str] = set()
+        self._families: List[Tuple[type, Optional[str]]] = []
 
-# Builtins that `encode` emits directly (tuples/sets, methods via `getattr`,
-# `functools.partial`).
-decode_allow_builtins = frozenset(
-    {tuple, set, frozenset, list, dict, getattr, partial}
-)
+    def register(self, *targets: Any) -> "DecodeRegistry":
+        """Allow exact constructor targets or fully-qualified names."""
+        self._targets.update(
+            target if isinstance(target, str) else fqname_for(target)
+            for target in targets
+        )
+        return self
 
-# Fully-qualified names of the constructors emitted by the registered `encode`
-# implementations (see serde/np.py, serde/pd.py, mx/serde.py,
-# zebras/_period.py). Backends that add new `encode.register` handlers must add
-# their target here as well.
-decode_allow_fqnames = frozenset(
-    {
+    def register_family(
+        self, base: type, namespace: Optional[str] = "gluonts."
+    ) -> "DecodeRegistry":
+        """Allow subclasses of ``base`` under ``namespace``."""
+        self._families.append((base, namespace))
+        return self
+
+    def allows_name(self, class_name: Any) -> bool:
+        return isinstance(class_name, str) and (
+            class_name in self._targets
+            or any(
+                namespace is None or class_name.startswith(namespace)
+                for _, namespace in self._families
+            )
+        )
+
+    def allows(self, cls: Any, class_name: str) -> bool:
+        if class_name in self._targets:
+            return True
+
+        return isinstance(cls, type) and any(
+            (namespace is None or class_name.startswith(namespace))
+            and issubclass(cls, base)
+            for base, namespace in self._families
+        )
+
+    def copy(self) -> "DecodeRegistry":
+        registry = DecodeRegistry()
+        registry._targets = self._targets.copy()
+        registry._families = self._families.copy()
+        return registry
+
+
+DEFAULT_DECODE_REGISTRY = (
+    DecodeRegistry()
+    .register(
+        tuple,
+        set,
+        frozenset,
+        list,
+        dict,
+        getattr,
+        partial,
         "numpy.dtype",
         "numpy.array",
         "numpy.datetime64",
@@ -320,63 +352,20 @@ decode_allow_fqnames = frozenset(
         "mxnet.nd.array",
         "mxnet.context.Context",
         "gluonts.zebras.periods",
-    }
+    )
+    .register_family(Stateless)
+    .register_family(Stateful)
+    .register_family(BaseModel)
+    .register_family(PurePath, namespace="pathlib.")
 )
 
 
-def _is_decode_safe(cls: Any, class_name: str) -> bool:
-    """
-    Whether ``cls`` (located from ``class_name``) is a type that
-    :func:`decode` should instantiate. Only targets that :func:`encode` is
-    known to produce are allowed.
-    """
-    if class_name in decode_allow_fqnames:
-        return True
-
-    if cls in decode_allow_builtins:
-        return True
-
-    if isinstance(cls, type):
-        # classes that explicitly opt into serde
-        if issubclass(cls, (Stateless, Stateful, PurePath, BaseModel)):
-            return True
-        # NamedTuple subclasses, encoded as instances
-        if (
-            issubclass(cls, tuple)
-            and hasattr(cls, "_fields")
-            and hasattr(cls, "_make")
-        ):
-            return True
-        # dataclasses are data containers; `encode` reconstructs them from
-        # their fields. This covers both `serde.dataclass` and plain
-        # dataclasses that expose `__init_passed_kwargs__` on instances.
-        if dataclasses.is_dataclass(cls):
-            return True
-
-    # `@validated` classes carry the pydantic model on their wrapped __init__;
-    # this marker is attached at import time (see component.validated).
-    if getattr(getattr(cls, "__init__", None), "Model", None) is not None:
-        return True
-
-    # `serde.dataclass` classes are turned into pydantic dataclasses at import
-    # time, which attach this marker (see serde._dataclass).
-    if hasattr(cls, "__pydantic_model__") or hasattr(
-        cls, "__pydantic_fields__"
-    ):
-        return True
-
-    # classes that expose their init kwargs, or are reconstructable via the
-    # pickle `__getnewargs_ex__` protocol -- both are encoding paths `encode`
-    # relies on for such types
-    if hasattr(cls, "__init_passed_kwargs__") or hasattr(
-        cls, "__getnewargs_ex__"
-    ):
-        return True
-
-    return False
-
-
-def decode(r: Any) -> Any:
+def decode(
+    r: Any,
+    *,
+    registry: DecodeRegistry = DEFAULT_DECODE_REGISTRY,
+    unsafe: bool = False,
+) -> Any:
     """
     Decodes a value from an intermediate representation `r`.
 
@@ -399,27 +388,29 @@ def decode(r: Any) -> Any:
     # structural recursion over the possible shapes of r
     if isinstance(r, dict) and "__kind__" in r:
         kind = r["__kind__"]
-        cls = cast(Any, locate(r["class"]))
+        class_name = r["class"]
 
-        if cls is None:
-            raise ValueError(f"Cannot locate {r['class']}.")
-        if cls in decode_disallow:
-            raise ValueError(f"{r['class']} cannot be run.")
+        # Validate the name before resolving it: ``locate`` may import a module.
+        if not unsafe and not registry.allows_name(class_name):
+            raise ValueError(f"{class_name} is not a serde-decodable type.")
 
         if kind == Kind.Type:
-            # `Kind.Type` returns the located object without calling it.
+            cls = cast(Any, locate(class_name))
+            if cls is None:
+                raise ValueError(f"Cannot locate {class_name}.")
             return cls
 
-        # `Kind.Instance` and `Kind.Stateful` both instantiate `cls`, so it is
-        # restricted to the types `encode` can produce.
-        if not _is_decode_safe(cls, r["class"]):
+        cls = cast(Any, locate(class_name))
+        if cls is None:
+            raise ValueError(f"Cannot locate {class_name}.")
+        if not unsafe and not registry.allows(cls, class_name):
             raise ValueError(
-                f"{r['class']} is not a serde-decodable type and "
+                f"{class_name} is not a serde-decodable type and "
                 f"cannot be instantiated during decoding."
             )
 
-        args = decode(r.get("args", []))
-        kwargs = decode(r.get("kwargs", {}))
+        args = decode(r.get("args", []), registry=registry, unsafe=unsafe)
+        kwargs = decode(r.get("kwargs", {}), registry=registry, unsafe=unsafe)
 
         if kind == Kind.Instance:
             return cls(*args, **kwargs)
@@ -432,9 +423,11 @@ def decode(r: Any) -> Any:
         raise ValueError(f"Unknown kind {kind}.")
 
     if isinstance(r, dict):
-        return valmap(decode, r)
+        return valmap(
+            lambda value: decode(value, registry=registry, unsafe=unsafe), r
+        )
 
     if isinstance(r, list):
-        return list(map(decode, r))
+        return [decode(value, registry=registry, unsafe=unsafe) for value in r]
 
     return r

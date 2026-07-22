@@ -28,7 +28,7 @@ data structures with explicit recursion.
 import json
 from typing import Any, Optional
 
-from ._base import decode, encode
+from ._base import DEFAULT_DECODE_REGISTRY, DecodeRegistry, decode, encode
 
 
 def dump_json(o: Any, indent: Optional[int] = None) -> str:
@@ -55,7 +55,12 @@ def dump_json(o: Any, indent: Optional[int] = None) -> str:
     return json.dumps(encode(o), indent=indent, sort_keys=True)
 
 
-def load_json(s: str) -> Any:
+def load_json(
+    s: str,
+    *,
+    registry: DecodeRegistry = DEFAULT_DECODE_REGISTRY,
+    unsafe: bool = False,
+) -> Any:
     """
     Deserializes an object from a JSON string.
 
@@ -63,6 +68,10 @@ def load_json(s: str) -> Any:
     ----------
     s
         A string representing the object in JSON format.
+    registry
+        The allowlist used to resolve serialized constructors.
+    unsafe
+        If true, bypass the registry. Only use for trusted input.
 
     Returns
     -------
@@ -74,4 +83,4 @@ def load_json(s: str) -> Any:
     dump_json
         Inverse function.
     """
-    return decode(json.loads(s))
+    return decode(json.loads(s), registry=registry, unsafe=unsafe)

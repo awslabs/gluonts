@@ -71,10 +71,16 @@ occurances. Consequently, ciruclar references do not work.
 """
 
 from . import flat
-from ._base import Stateful, Stateless, decode, encode
+from ._base import (
+    DEFAULT_DECODE_REGISTRY,
+    DecodeRegistry,
+    Stateful,
+    Stateless,
+    decode,
+    encode,
+)
 from ._dataclass import dataclass, EVENTUAL, Eventual, OrElse
 from ._json import dump_json, load_json
-
 
 # TODO: remove
 # These are needed because we implement `encode` for numpy and pandas types in
@@ -82,13 +88,14 @@ from ._json import dump_json, load_json
 from .np import *  # noqa
 from .pd import *  # noqa
 
-
 __all__ = [
     "flat",
     "encode",
     "decode",
     "dump_json",
     "load_json",
+    "DecodeRegistry",
+    "DEFAULT_DECODE_REGISTRY",
     "Stateful",
     "Stateless",
     "dataclass",

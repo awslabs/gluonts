@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+from collections import Counter
 from functools import partial
 from operator import add
 from pathlib import Path
@@ -22,6 +23,31 @@ import pytest
 
 from gluonts.core.component import equals, equals_list
 from gluonts.core import serde
+
+
+def test_registry_restricts_and_extends_decode():
+    encoded = {
+        "__kind__": "instance",
+        "class": "collections.Counter",
+        "args": [["a", "a"]],
+    }
+
+    with pytest.raises(ValueError):
+        serde.decode(encoded)
+
+    registry = serde.DEFAULT_DECODE_REGISTRY.copy().register(Counter)
+    assert serde.decode(encoded, registry=registry) == {"a": 2}
+
+
+def test_load_json_unsafe_override():
+    encoded = serde.dump_json(
+        {
+            "__kind__": "instance",
+            "class": "collections.Counter",
+            "args": [["a", "a"]],
+        }
+    )
+    assert serde.load_json(encoded, unsafe=True) == {"a": 2}
 
 
 class Span(NamedTuple):
@@ -94,8 +120,20 @@ def check_equality(expected, actual) -> bool:
 
 @pytest.mark.parametrize("e", examples)
 def test_json_serialization(e) -> None:
-    expected, actual = e, serde.load_json(serde.dump_json(e))
+    registry = serde.DEFAULT_DECODE_REGISTRY.copy().register(
+        BestEpochInfo, Span
+    )
+    expected, actual = e, serde.load_json(
+        serde.dump_json(e), registry=registry
+    )
     assert check_equality(expected, actual)
+
+
+def test_registered_gluonts_base_family():
+    from gluonts.time_feature import Constant
+
+    constant = Constant(value=1.0)
+    assert serde.decode(serde.encode(constant)) == constant
 
 
 def test_timestamp_encode_decode() -> None:
@@ -108,7 +146,8 @@ def test_string_escape() -> None:
 
 
 def test_serde_fq():
-    add_ = serde.decode(serde.encode(add))
+    registry = serde.DEFAULT_DECODE_REGISTRY.copy().register(add)
+    add_ = serde.decode(serde.encode(add), registry=registry)
     assert add_(1, 2) == 3
 
     def foo():
@@ -121,7 +160,8 @@ def test_serde_fq():
 def test_serde_partial():
     add_1 = partial(add, 1)
 
-    add_1_ = serde.decode(serde.encode(add_1))
+    registry = serde.DEFAULT_DECODE_REGISTRY.copy().register(add)
+    add_1_ = serde.decode(serde.encode(add_1), registry=registry)
 
     assert add_1_(2) == 3
 
@@ -134,7 +174,8 @@ class X(serde.Stateless):
 def test_serde_method():
     x = X()
 
-    m = serde.decode(serde.encode(x.m))
+    registry = serde.DEFAULT_DECODE_REGISTRY.copy().register(X)
+    m = serde.decode(serde.encode(x.m), registry=registry)
 
     assert m() == 42
 
@@ -149,11 +190,14 @@ def test_serde_init_passed_kwargs():
     # round-trip through the allowlist
     from gluonts import zebras as zb
 
-    for obj in [
-        zb.period("2021-01-01", "D"),
-        zb.periods("2021-01-01", "D", 10),
-    ]:
-        assert serde.decode(serde.encode(obj)) == obj
+    period = zb.period("2021-01-01", "D")
+    periods = zb.periods("2021-01-01", "D", 10)
+    registry = serde.DEFAULT_DECODE_REGISTRY.copy().register(
+        type(period), type(periods), type(period.freq)
+    )
+
+    for obj in [period, periods]:
+        assert serde.decode(serde.encode(obj), registry=registry) == obj
 
 
 def test_serde_dataclass_instance():
@@ -162,7 +206,8 @@ def test_serde_dataclass_instance():
     from gluonts.transform import Chain, Identity
 
     chain = Chain([Identity(), Identity()])
-    assert serde.decode(serde.encode(chain)) == chain
+    registry = serde.DEFAULT_DECODE_REGISTRY.copy().register(Chain, Identity)
+    assert serde.decode(serde.encode(chain), registry=registry) == chain
 
 
 @pytest.mark.parametrize(
@@ -183,13 +228,13 @@ def test_serde_dataclass_instance():
         ]
     ],
 )
-def test_decode_disallow(obj):
+def test_decode_rejects_unregistered_builtins(obj):
     with pytest.raises(ValueError):
         serde.decode(obj)
 
 
-# `decode` only instantiates types that `encode` is known to produce; other
-# classes should be rejected rather than instantiated.
+# `decode` only resolves registered targets; other names must be rejected
+# before they can be instantiated or imported.
 @pytest.mark.parametrize(
     "class_name",
     [
@@ -203,7 +248,7 @@ def test_decode_disallow(obj):
         "webbrowser.open",
     ],
 )
-@pytest.mark.parametrize("kind", ["instance", "stateful"])
+@pytest.mark.parametrize("kind", ["type", "instance", "stateful"])
 def test_decode_rejects_arbitrary_callables(class_name, kind):
     with pytest.raises(ValueError):
         serde.decode(
