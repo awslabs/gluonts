@@ -73,12 +73,13 @@ def test_get_seasonality_for_frequency():
 
 def test_get_seasonality_deprecation_warning():
     """The old get_seasonality should emit a DeprecationWarning."""
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         get_seasonality("H")
         deprecation_warnings = [
-            ww for ww in w
-            if issubclass(ww.category, DeprecationWarning)
-            and "get_seasonality_for_frequency" in str(ww.message)
+            warning
+            for warning in caught
+            if issubclass(warning.category, DeprecationWarning)
+            and "get_seasonality_for_frequency" in str(warning.message)
         ]
         assert len(deprecation_warnings) == 1
