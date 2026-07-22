@@ -164,3 +164,53 @@ def test_nopscaler(target, observed):
     assert torch.allclose(torch.zeros(target.shape[:-1]), loc)
     assert torch.allclose(target, target_scaled)
     assert torch.allclose(torch.ones(target.shape[:-1]), scale)
+
+
+def test_stdscaler_basic():
+    # Constant series → variance is 0, scale is sqrt(minimum_scale),
+    # scaled output is all zeros. keepdim=True is how models actually use StdScaler.
+    data = torch.ones(3, 20)
+    weights = torch.ones_like(data)
+    s = scaler.StdScaler(keepdim=True, minimum_scale=1e-5)
+    scaled, loc, scale = s(data, weights)
+
+    assert torch.allclose(loc, torch.ones(3, 1))
+    # variance == 0, so scale = sqrt(0 + minimum_scale) = sqrt(1e-5)
+    assert torch.allclose(scale, torch.full((3, 1), 1e-5**0.5))
+    assert torch.allclose(scaled, torch.zeros_like(data))
+
+
+def test_stdscaler_partial_observation():
+    # Only the second half of each series is observed; loc and scale should
+    # be computed from those values only.
+    data = torch.zeros(2, 20)
+    data[0, 10:] = 3.0
+    data[1, 10:] = -1.0
+    weights = torch.zeros(2, 20)
+    weights[:, 10:] = 1.0
+
+    s = scaler.StdScaler(keepdim=True, minimum_scale=1e-5)
+    _, loc, scale = s(data, weights)
+
+    assert torch.allclose(loc, torch.tensor([[3.0], [-1.0]]))
+    # Constant over the observed window → variance is 0, scale = sqrt(minimum_scale)
+    assert torch.allclose(scale, torch.full((2, 1), 1e-5**0.5))
+
+
+def test_stdscaler_no_overflow_large_values():
+    # Reproducer from https://github.com/awslabs/gluonts/issues/3070.
+    # Values at 1e20 scale: (x - mean)^2 ~ 1e40, which overflows float32
+    # (max ~3.4e38). The scale should be finite, not inf.
+    torch.manual_seed(0)
+    data = torch.empty(5, 10).normal_(mean=0, std=1e20)
+    weights = torch.ones_like(data)
+
+    s = scaler.StdScaler(keepdim=True)
+    scaled, loc, scale = s(data, weights)
+
+    assert torch.all(
+        torch.isfinite(scale)
+    ), "scale must be finite for large-valued inputs"
+    assert torch.all(
+        torch.isfinite(scaled)
+    ), "scaled output must be finite for large-valued inputs"
