@@ -22,7 +22,7 @@ jobs:
     - name: Validate version matches tag
       run: |
         # Extract version from pyproject.toml
-        PACKAGE_VERSION=$(uv run python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+        PACKAGE_VERSION=$(uv run --no-project python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
         # Extract version from git tag (remove 'v' prefix if present)
         TAG_VERSION="${GITHUB_REF_NAME#v}"
         
