@@ -48,7 +48,6 @@ class LagTSTLightningModule(pl.LightningModule):
         weight_decay: float = 1e-8,
     ):
         super().__init__()
-        self.save_hyperparameters()
         self.model = LagTSTModel(**model_kwargs)
         self.lr = lr
         self.weight_decay = weight_decay

@@ -41,7 +41,6 @@ class WaveNetLightningModule(pl.LightningModule):
         weight_decay: float = 1e-8,
     ) -> None:
         super().__init__()
-        self.save_hyperparameters()
         self.model = WaveNet(**model_kwargs)
         self.lr = lr
         self.weight_decay = weight_decay

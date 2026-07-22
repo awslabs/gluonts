@@ -53,7 +53,6 @@ class TiDELightningModule(pl.LightningModule):
         patience: int = 10,
     ):
         super().__init__()
-        self.save_hyperparameters()
         self.model = TiDEModel(**model_kwargs)
         self.lr = lr
         self.weight_decay = weight_decay
