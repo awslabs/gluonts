@@ -61,3 +61,23 @@ def test_will_extractall_into(arcname: Optional[str], expect_failure: bool):
         else:
             with tarfile.open(Path(tempdir) / "archive.tar.gz", "r:gz") as tar:
                 will_extractall_into(tar, Path(tempdir) / "b")
+
+
+@pytest.mark.parametrize("link_type", [tarfile.SYMTYPE, tarfile.LNKTYPE])
+@pytest.mark.parametrize("linkname", ["/etc/passwd", "target.txt"])
+def test_will_extractall_into_rejects_links(link_type, linkname):
+    # Links are rejected regardless of where their target points, since
+    # GluonTS archives never legitimately contain them.
+    with tempfile.TemporaryDirectory() as tempdir:
+        dest = Path(tempdir) / "b"
+        archive_path = Path(tempdir) / "archive.tar.gz"
+
+        with tarfile.open(archive_path, "w:gz") as tar:
+            link = tarfile.TarInfo("link")
+            link.type = link_type
+            link.linkname = linkname
+            tar.addfile(link)
+
+        with tarfile.open(archive_path, "r:gz") as tar:
+            with pytest.raises(PermissionError):
+                will_extractall_into(tar, dest)

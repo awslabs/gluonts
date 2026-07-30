@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import copy
+import sys
 import tarfile
 from functools import lru_cache
 from pathlib import Path
@@ -88,6 +89,12 @@ def will_extractall_into(tar: tarfile.TarFile, path: Path) -> None:
         except ValueError:
             raise PermissionError(f"'{member.name}' extracts out of target.")
 
+        # GluonTS archives never legitimately contain links; a symlink or
+        # hardlink can redirect a later member's write outside the target,
+        # so reject them outright.
+        if member.issym() or member.islnk():
+            raise PermissionError(f"'{member.name}' is a link.")
+
 
 def safe_extractall(
     tar: tarfile.TarFile,
@@ -101,4 +108,12 @@ def safe_extractall(
     files to be strictly within the given ``path``.
     """
     will_extractall_into(tar, path)
-    tar.extractall(path, members, numeric_owner=numeric_owner)
+
+    # Defense in depth: the ``data`` filter (Python 3.12+) also blocks
+    # unsafe members.
+    if sys.version_info >= (3, 12):
+        tar.extractall(
+            path, members, numeric_owner=numeric_owner, filter="data"
+        )
+    else:
+        tar.extractall(path, members, numeric_owner=numeric_owner)
