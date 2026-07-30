@@ -101,9 +101,7 @@ def will_extractall_into(tar: tarfile.TarFile, path: Path) -> None:
             try:
                 link_target.relative_to(path)
             except ValueError:
-                raise PermissionError(
-                    f"'{member.name}' links out of target."
-                )
+                raise PermissionError(f"'{member.name}' links out of target.")
 
 
 def safe_extractall(
