@@ -89,19 +89,11 @@ def will_extractall_into(tar: tarfile.TarFile, path: Path) -> None:
         except ValueError:
             raise PermissionError(f"'{member.name}' extracts out of target.")
 
-        # Reject links whose target escapes the destination.
+        # GluonTS archives never legitimately contain links; a symlink or
+        # hardlink can redirect a later member's write outside the target,
+        # so reject them outright.
         if member.issym() or member.islnk():
-            if member.issym():
-                # symlink target is relative to the link's directory
-                link_target = (member_path.parent / member.linkname).resolve()
-            else:
-                # hardlink target is an archive-root-relative name
-                link_target = (path / member.linkname).resolve()
-
-            try:
-                link_target.relative_to(path)
-            except ValueError:
-                raise PermissionError(f"'{member.name}' links out of target.")
+            raise PermissionError(f"'{member.name}' is a link.")
 
 
 def safe_extractall(

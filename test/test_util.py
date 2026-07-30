@@ -64,34 +64,20 @@ def test_will_extractall_into(arcname: Optional[str], expect_failure: bool):
 
 
 @pytest.mark.parametrize("link_type", [tarfile.SYMTYPE, tarfile.LNKTYPE])
-def test_will_extractall_into_rejects_link_escape(link_type):
-    # A link whose target points outside the destination must be rejected.
-    with tempfile.TemporaryDirectory() as tempdir:
-        dest = Path(tempdir) / "b"
-        archive_path = Path(tempdir) / "archive.tar.gz"
-
-        with tarfile.open(archive_path, "w:gz") as tar:
-            link = tarfile.TarInfo("escape")
-            link.type = link_type
-            link.linkname = str(Path(tempdir) / "outside")  # outside dest
-            tar.addfile(link)
-
-        with tarfile.open(archive_path, "r:gz") as tar:
-            with pytest.raises(PermissionError):
-                will_extractall_into(tar, dest)
-
-
-def test_will_extractall_into_allows_internal_symlink():
-    # A symlink pointing within the destination is still accepted.
+@pytest.mark.parametrize("linkname", ["/etc/passwd", "target.txt"])
+def test_will_extractall_into_rejects_links(link_type, linkname):
+    # Links are rejected regardless of where their target points, since
+    # GluonTS archives never legitimately contain them.
     with tempfile.TemporaryDirectory() as tempdir:
         dest = Path(tempdir) / "b"
         archive_path = Path(tempdir) / "archive.tar.gz"
 
         with tarfile.open(archive_path, "w:gz") as tar:
             link = tarfile.TarInfo("link")
-            link.type = tarfile.SYMTYPE
-            link.linkname = "target.txt"  # sibling inside destination
+            link.type = link_type
+            link.linkname = linkname
             tar.addfile(link)
 
         with tarfile.open(archive_path, "r:gz") as tar:
-            will_extractall_into(tar, dest)
+            with pytest.raises(PermissionError):
+                will_extractall_into(tar, dest)
