@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 import copy
+import sys
 import tarfile
 from functools import lru_cache
 from pathlib import Path
@@ -88,6 +89,22 @@ def will_extractall_into(tar: tarfile.TarFile, path: Path) -> None:
         except ValueError:
             raise PermissionError(f"'{member.name}' extracts out of target.")
 
+        # Reject links whose target escapes the destination.
+        if member.issym() or member.islnk():
+            if member.issym():
+                # symlink target is relative to the link's directory
+                link_target = (member_path.parent / member.linkname).resolve()
+            else:
+                # hardlink target is an archive-root-relative name
+                link_target = (path / member.linkname).resolve()
+
+            try:
+                link_target.relative_to(path)
+            except ValueError:
+                raise PermissionError(
+                    f"'{member.name}' links out of target."
+                )
+
 
 def safe_extractall(
     tar: tarfile.TarFile,
@@ -101,4 +118,12 @@ def safe_extractall(
     files to be strictly within the given ``path``.
     """
     will_extractall_into(tar, path)
-    tar.extractall(path, members, numeric_owner=numeric_owner)
+
+    # Defense in depth: the ``data`` filter (Python 3.12+) also blocks
+    # unsafe members.
+    if sys.version_info >= (3, 12):
+        tar.extractall(
+            path, members, numeric_owner=numeric_owner, filter="data"
+        )
+    else:
+        tar.extractall(path, members, numeric_owner=numeric_owner)
