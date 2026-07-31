@@ -117,7 +117,7 @@ class MQF2MultiHorizonLightningModule(pl.LightningModule):
             dim=1,
         )
 
-        loss_values = self.loss(distr, target)
+        loss_values = self.loss(distr, target)  # type: ignore[operator]
 
         return loss_values.mean()
 

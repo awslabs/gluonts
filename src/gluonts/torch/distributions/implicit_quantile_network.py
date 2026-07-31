@@ -42,6 +42,7 @@ class QuantileLayer(nn.Module):
             nn.Linear(cos_embedding_dim, num_output),
         )
 
+        self.integers: torch.Tensor
         self.register_buffer("integers", torch.arange(0, cos_embedding_dim))
 
     def forward(self, tau: torch.Tensor) -> torch.Tensor:  # tau: [B, T]

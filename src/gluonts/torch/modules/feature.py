@@ -34,9 +34,9 @@ class FeatureEmbedder(nn.Module):
         if self._num_features > 1:
             # we slice the last dimension, giving an array of length
             # self._num_features with shape (N,T) or (N)
-            cat_feature_slices = torch.chunk(
-                features, self._num_features, dim=-1
-            )
+            cat_feature_slices: tuple[torch.Tensor, ...] | list[
+                torch.Tensor
+            ] = torch.chunk(features, self._num_features, dim=-1)
         else:
             cat_feature_slices = [features]
 

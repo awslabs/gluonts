@@ -172,7 +172,7 @@ class PiecewiseLinear(torch.distributions.Distribution):
 
         return result
 
-    def rsample(self, sample_shape: torch.Size = torch.Size()) -> torch.Tensor:
+    def rsample(self, sample_shape: torch.Size = torch.Size()) -> torch.Tensor:  # type: ignore[override]
         target_shape = (
             self.gamma.shape
             if sample_shape == torch.Size()
@@ -239,7 +239,8 @@ class PiecewiseLinearOutput(DistributionOutput):
         else:
             distr = self.distr_cls(*distr_args)
             return TransformedPiecewiseLinear(
-                distr, [AffineTransform(loc=loc, scale=scale)]
+                distr,
+                [AffineTransform(loc=0.0 if loc is None else loc, scale=scale)],
             )
 
     @property
@@ -256,15 +257,17 @@ class TransformedPiecewiseLinear(TransformedDistribution):
         validate_args=None,
     ) -> None:
         super().__init__(
-            base_distribution, transforms, validate_args=validate_args
+            base_distribution,
+            transforms,  # type: ignore[arg-type]
+            validate_args=validate_args,
         )
 
     def crps(self, y: torch.Tensor) -> torch.Tensor:
         z = y
-        scale = 1.0
+        scale: float | torch.Tensor = 1.0
         for t in self.transforms[::-1]:
             assert isinstance(t, AffineTransform), "Not an AffineTransform"
             z = t._inverse(y)
-            scale *= t.scale
-        p = self.base_dist.crps(z)
+            scale = scale * t.scale
+        p = self.base_dist.crps(z)  # type: ignore[attr-defined]
         return p * scale

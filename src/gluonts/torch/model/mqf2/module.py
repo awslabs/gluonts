@@ -101,7 +101,7 @@ class MQF2MultiHorizonModel(DeepARModel):
         )
 
         if is_energy_score:
-            networks = [deepconvexnet]
+            networks: list[torch.nn.Module] = [deepconvexnet]
         else:
             networks = [
                 ActNorm(prediction_length),

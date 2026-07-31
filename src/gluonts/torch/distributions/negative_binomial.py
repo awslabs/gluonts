@@ -43,8 +43,8 @@ class NegativeBinomial(TorchNegativeBinomial):
     ):
         super().__init__(
             total_count=total_count,
-            probs=probs,
-            logits=logits,
+            probs=probs,  # type: ignore[arg-type]
+            logits=logits,  # type: ignore[arg-type]
             validate_args=validate_args,
         )
 

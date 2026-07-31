@@ -64,7 +64,7 @@ class DistributionForecast(Forecast):
         ), "start_date should be a pandas Period object"
         self.start_date = start_date
 
-        self._mean = None
+        self._mean: Optional[np.ndarray] = None
 
     @property
     def mean(self) -> np.ndarray:

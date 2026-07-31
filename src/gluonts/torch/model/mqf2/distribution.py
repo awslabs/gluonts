@@ -59,6 +59,14 @@ class MQF2Distribution(torch.distributions.Distribution):
         torch.distributions.distribution.Distribution
     """
 
+    picnn: PICNN
+    hidden_state: torch.Tensor
+    prediction_length: int
+    is_energy_score: bool
+    es_num_samples: int
+    beta: float
+    threshold_input: float
+
     def __init__(
         self,
         picnn: PICNN,
@@ -149,7 +157,7 @@ class MQF2Distribution(torch.distributions.Distribution):
         z = torch.clamp(z, min=-self.threshold_input, max=self.threshold_input)
         z = self.stack_sliding_view(z)
 
-        loss = self.picnn.logp(
+        loss = self.picnn.logp(  # type: ignore[operator]
             z, self.hidden_state.reshape(-1, self.hidden_state.shape[-1])
         )
 
@@ -188,13 +196,13 @@ class MQF2Distribution(torch.distributions.Distribution):
             -1, self.hidden_state.shape[-1]
         )
 
-        loss = self.picnn.energy_score(
+        loss = self.picnn.energy_score(  # type: ignore[operator]
             z, reshaped_hidden_state, es_num_samples=es_num_samples, beta=beta
         )
 
         return loss
 
-    def rsample(self, sample_shape: torch.Size = torch.Size()) -> torch.Tensor:
+    def rsample(self, sample_shape: torch.Size = torch.Size()) -> torch.Tensor:  # type: ignore[override]
         """
         Generates the sample paths.
 
@@ -262,7 +270,7 @@ class MQF2Distribution(torch.distributions.Distribution):
         if self.is_energy_score:
             result = self.picnn(normal_quantile, context=hidden_state)
         else:
-            result = self.picnn.reverse(normal_quantile, context=hidden_state)
+            result = self.picnn.reverse(normal_quantile, context=hidden_state)  # type: ignore[operator]
 
         return result
 
@@ -343,6 +351,8 @@ class MQF2DistributionOutput(DistributionOutput):
 
 
 class TransformedMQF2Distribution(TransformedDistribution):
+    base_dist: MQF2Distribution
+
     @validated()
     def __init__(
         self,
@@ -352,20 +362,21 @@ class TransformedMQF2Distribution(TransformedDistribution):
         validate_args: bool = False,
     ) -> None:
         super().__init__(
-            base_distribution, transforms, validate_args=validate_args
+            base_distribution,
+            transforms,  # type: ignore[arg-type]
+            validate_args=validate_args,
         )
         self.is_energy_score = is_energy_score
 
     def scale_input(
         self, y: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        # Auxiliary function to scale the observations
         z = y
-        scale = 1.0
+        scale: float | torch.Tensor = 1.0
         for t in self.transforms[::-1]:
             assert isinstance(t, AffineTransform), "Not an AffineTransform"
             z = t._inverse(y)
-            scale *= t.scale
+            scale = scale * t.scale
 
         assert isinstance(scale, torch.Tensor)
 
