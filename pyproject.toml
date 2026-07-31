@@ -1,6 +1,6 @@
 [project]
 name = "gluonts"
-version = "0.17.0.dev0"
+version = "0.18.0.dev0"
 description = "Probabilistic time series modeling in Python."
 readme = "README.md"
 license = { text = "Apache-2.0" }
