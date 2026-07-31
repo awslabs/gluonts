@@ -229,6 +229,9 @@ dev = [
     "requests",
     "holidays~=0.9",
     "matplotlib~=3.6",
+    # Latest numpy updated stubs, type checks fail
+    # TODO: updgrade type checking, uncap numpy, address failures
+    "numpy<2.5",
     # Type checking
     "mypy==1.8.0",
     "types-python-dateutil",
