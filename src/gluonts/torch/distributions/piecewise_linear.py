@@ -240,7 +240,11 @@ class PiecewiseLinearOutput(DistributionOutput):
             distr = self.distr_cls(*distr_args)
             return TransformedPiecewiseLinear(
                 distr,
-                [AffineTransform(loc=0.0 if loc is None else loc, scale=scale)],
+                [
+                    AffineTransform(
+                        loc=0.0 if loc is None else loc, scale=scale
+                    )
+                ],
             )
 
     @property

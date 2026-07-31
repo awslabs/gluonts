@@ -811,7 +811,11 @@ class ISQFOutput(DistributionOutput):
         else:
             return TransformedISQF(
                 distr,
-                [AffineTransform(loc=0.0 if loc is None else loc, scale=scale)],
+                [
+                    AffineTransform(
+                        loc=0.0 if loc is None else loc, scale=scale
+                    )
+                ],
             )
 
     def reshape_spline_args(self, distr_args, qk_x: List[float]):
