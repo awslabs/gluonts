@@ -132,8 +132,13 @@ class PatchTSTModel(nn.Module):
             self.scaler = MeanScaler(keepdim=True)
         elif scaling == "std":
             self.scaler = StdScaler(keepdim=True)
-        else:
+        elif scaling is None:
             self.scaler = NOPScaler(keepdim=True)
+        else:
+            raise ValueError(
+                f"Unknown scaling={scaling!r}; "
+                "expected one of 'mean', 'std', or None."
+            )
 
         self.patch_num = int((context_length - patch_len) / stride + 1)
         if padding_patch == "end":  # can be modified to general case
