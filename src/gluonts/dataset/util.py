@@ -50,7 +50,9 @@ def to_pandas(entry: DataEntry, freq: Optional[str] = None) -> pd.Series:
     pandas.Series
         Pandas time series object.
     """
-    return pd.Series(
-        entry[FieldName.TARGET],
-        index=period_index(entry, freq=freq),
-    )
+    if FieldName.INDEX in entry:
+        index = entry[FieldName.INDEX]
+    else:
+        index = period_index(entry, freq=freq)
+
+    return pd.Series(entry[FieldName.TARGET], index=index)

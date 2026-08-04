@@ -14,6 +14,7 @@
 from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
+import pandas as pd
 from pandas.tseries.offsets import BaseOffset
 
 from gluonts.core.component import validated
@@ -136,7 +137,7 @@ class InstanceSplitter(FlatMapTransformation):
             if self.output_NTC:
                 past_piece = past_piece.transpose()
                 future_piece = future_piece.transpose()
-
+                
             entry[self._past(ts_field)] = past_piece
             entry[self._future(ts_field)] = future_piece
             del entry[ts_field]
