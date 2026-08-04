@@ -46,13 +46,17 @@ def join(a, b, sep="."):
     Joins `a` and `b` using `sep`.
     """
     if not a:
-        return b
+        return str(b)
 
     return f"{a}{sep}{b}"
 
 
+def is_kind(obj) -> bool:
+    return isinstance(obj, dict) and "__kind__" in obj
+
+
 def _encode(data: Any, path: str, result: dict):
-    if isinstance(data, dict) and "__kind__" in data:
+    if is_kind(data):
         kind = data["__kind__"]
 
         if kind == Kind.Instance:
@@ -61,13 +65,13 @@ def _encode(data: Any, path: str, result: dict):
             for n, arg in enumerate(data.get("args", [])):
                 _encode(arg, join(path, n), result)
 
-            for name, value in data["kwargs"].items():
+            for name, value in data.get("kwargs", {}).items():
                 _encode(value, join(path, name), result)
 
         elif kind == Kind.Stateful:
             result[join(path, "!")] = data["class"]
 
-            for name, value in data["kwargs"].items():
+            for name, value in data.get("kwargs", {}).items():
                 _encode(value, join(path, name), result)
 
         elif kind == Kind.Type:
@@ -76,6 +80,13 @@ def _encode(data: Any, path: str, result: dict):
         else:
             raise ValueError(f"Unsupported kind `{kind}`.")
 
+    elif isinstance(data, list):
+        if any(map(is_kind, data)):
+            result[join(path, "[]")] = len(data)
+            for n, arg in enumerate(data):
+                _encode(arg, join(path, n), result)
+        else:
+            result[path] = data
     else:
         result[path] = data
 
@@ -108,6 +119,7 @@ def get_args(data):
     for idx in map(str, count(start=0)):
         if idx not in data:
             return args
+
         args.append(_translate(data.pop(idx)))
 
 
@@ -124,6 +136,11 @@ def _translate(data):
                 "args": args,
                 "kwargs": kwargs,
             }
+
+        if "[]" in data:
+            length = data.pop("[]")
+
+            return get_args(data)
 
         if "!" in data:
             ty = data.pop("!")
