@@ -41,7 +41,7 @@ class RenameFields(SimpleTransformation):
         for key, new_key in self.mapping.items():
             if key in data:
                 # no implicit overriding
-                assert new_key not in data
+                assert new_key not in data, f"Key {new_key} is already present"
                 data[new_key] = data[key]
                 del data[key]
         return data
