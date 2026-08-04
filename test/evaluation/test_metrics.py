@@ -26,6 +26,7 @@ from gluonts.evaluation.metrics import (
     msis,
     quantile_loss,
     smape,
+    overlay_dx,
 )
 
 ZEROES = np.array([0.0] * 5)
@@ -202,3 +203,53 @@ def test_seasonal_error(past_data, seasonality, expected):
         ),
         expected,
     )
+
+
+class TestOverlayDx:
+    """Tests for overlay_dx metric."""
+
+    def test_perfect_forecast(self):
+        target = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+        forecast = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+        result = overlay_dx(target, forecast)
+        np.testing.assert_almost_equal(result, 1.0)
+
+    def test_constant_target_returns_zero(self):
+        target = np.array([5.0, 5.0, 5.0, 5.0])
+        forecast = np.array([4.0, 5.0, 6.0, 7.0])
+        result = overlay_dx(target, forecast)
+        np.testing.assert_almost_equal(result, 0.0)
+
+    def test_score_in_unit_interval(self):
+        rng = np.random.default_rng(42)
+        target = rng.standard_normal(100)
+        forecast = target + rng.standard_normal(100) * 0.5
+        result = overlay_dx(target, forecast)
+        assert 0.0 <= result <= 1.0
+
+    def test_better_forecast_scores_higher(self):
+        target = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+        good_forecast = target + 0.1
+        bad_forecast = target + 2.0
+        score_good = overlay_dx(target, good_forecast)
+        score_bad = overlay_dx(target, bad_forecast)
+        assert score_good > score_bad
+
+    def test_custom_parameters(self):
+        target = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
+        forecast = np.array([0.1, 1.1, 2.1, 3.1, 4.1])
+        result = overlay_dx(
+            target, forecast,
+            max_percentage=50.0,
+            min_percentage=1.0,
+            step=0.5,
+        )
+        assert 0.0 <= result <= 1.0
+
+    def test_symmetric(self):
+        target = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+        forecast_above = target + 0.5
+        forecast_below = target - 0.5
+        score_above = overlay_dx(target, forecast_above)
+        score_below = overlay_dx(target, forecast_below)
+        np.testing.assert_almost_equal(score_above, score_below)

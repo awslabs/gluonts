@@ -185,3 +185,58 @@ def num_masked_values(target) -> float:
         return np.ma.count_masked(target)
     else:
         return 0
+
+
+def overlay_dx(
+    target: np.ndarray,
+    forecast: np.ndarray,
+    max_percentage: float = 100.0,
+    min_percentage: float = 0.1,
+    step: float = 0.1,
+) -> float:
+    """Overlay-dx metric: tolerance-sweep visual alignment score.
+
+    Measures alignment between target and forecast by computing coverage
+    at varying tolerance levels and returning the normalized AUC.
+
+    Parameters
+    ----------
+    target : np.ndarray
+        Ground truth values.
+    forecast : np.ndarray
+        Predicted values.
+    max_percentage : float, default 100.0
+        Upper bound of tolerance sweep (percentage of value range).
+    min_percentage : float, default 0.1
+        Lower bound of tolerance sweep (percentage of value range).
+    step : float, default 0.1
+        Step size for tolerance sweep (percentage points).
+
+    Returns
+    -------
+    float
+        Normalized AUC score in [0, 1]. Higher is better.
+        Returns 0.0 if value_range is 0 (constant target).
+    """
+    value_range = np.max(target) - np.min(target)
+
+    if value_range == 0:
+        return 0.0
+
+    abs_errors = np.abs(target - forecast)
+    n = len(forecast)
+
+    percentages = np.arange(max_percentage, min_percentage - step, -step)
+    coverages = np.empty(len(percentages))
+
+    for i, pct in enumerate(percentages):
+        tolerance = pct / 100.0 * value_range / 2.0
+        coverages[i] = np.sum(abs_errors <= tolerance) / n
+
+    area = np.trapz(coverages, dx=step / 100.0 * value_range / 2.0)
+    max_area = value_range * (max_percentage - min_percentage) / 200.0
+
+    if max_area == 0:
+        return 0.0
+
+    return area / max_area
