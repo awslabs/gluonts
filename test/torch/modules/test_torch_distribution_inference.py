@@ -15,6 +15,7 @@
 Test that maximizing likelihood allows to correctly recover distribution
 parameters for all distributions exposed to the user.
 """
+
 from typing import List
 
 import numpy as np
@@ -41,6 +42,8 @@ from gluonts.torch.distributions import (
     BetaOutput,
     DistributionOutput,
     GammaOutput,
+    GeneralizedPareto,
+    GeneralizedParetoOutput,
     NegativeBinomialOutput,
     NormalOutput,
     PoissonOutput,
@@ -329,6 +332,43 @@ def test_neg_binomial(total_count: float, logit: float) -> None:
     assert (
         np.abs(logit_hat - logit) < TOL * logit
     ), f"logit did not match: logit = {logit}, logit_hat = {logit_hat}"
+
+
+@pytest.mark.flaky(max_runs=5, min_passes=1)
+@pytest.mark.parametrize("loc, scale, concentration", [(6.0, 2.3, 0.7)])
+def test_generalized_pareto(loc: float, scale: float, concentration: float):
+    locs = torch.zeros((NUM_SAMPLES,)) + loc
+    scales = torch.zeros((NUM_SAMPLES,)) + scale
+    concentrations = torch.zeros((NUM_SAMPLES,)) + concentration
+
+    distr = GeneralizedPareto(
+        loc=locs, scale=scales, concentration=concentrations
+    )
+    samples = distr.sample()
+
+    init_bias = [
+        loc - START_TOL_MULTIPLE * TOL * loc,
+        inv_softplus(scale - START_TOL_MULTIPLE * TOL * scale),
+        concentration - START_TOL_MULTIPLE * TOL * concentration,
+    ]
+
+    loc_hat, scale_hat, concentration_hat = maximum_likelihood_estimate_sgd(
+        GeneralizedParetoOutput(),
+        samples,
+        init_biases=init_bias,
+        num_epochs=12,
+        learning_rate=3e-3,
+    )
+
+    assert (
+        np.abs(loc_hat - loc) < TOL * loc
+    ), f"loc did not match: loc = {loc}, loc_hat = {loc_hat}"
+    assert (
+        np.abs(scale_hat - scale) < TOL * scale
+    ), f"scale did not match: scale = {scale}, scale_hat = {scale_hat}"
+    assert (
+        np.abs(concentration_hat - concentration) < TOL * concentration
+    ), f"concentration did not match: concentration = {concentration}, concentration_hat = {concentration_hat}"
 
 
 percentile_tail = 0.05
