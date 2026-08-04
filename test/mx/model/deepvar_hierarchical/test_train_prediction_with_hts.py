@@ -21,7 +21,7 @@ import pandas as pd
 import pytest
 
 # First-party imports
-from gluonts.dataset.hierarchical import HierarchicalTimeSeries
+from gluonts.dataset.hierarchical import HierarchicalDataset
 from gluonts.mx.model.deepvar_hierarchical import DeepVARHierarchicalEstimator
 from gluonts.mx.trainer import Trainer
 
@@ -29,69 +29,49 @@ from gluonts.mx.trainer import Trainer
 NUM_BOTTOM_TS = 4
 FREQ = "H"
 PERIODS = 168 * 2
-S = np.vstack(([[1, 1, 1, 1], [1, 1, 0, 0], [0, 0, 1, 1]], np.eye(4)))
+S = np.vstack(
+    (
+        [1, 1, 1, 1],
+        [1, 1, 0, 0],
+        [0, 0, 1, 1],
+        np.identity(4),
+    )
+)
 PREDICTION_LENGTH = 24
 
 
-def random_ts(num_ts: int, periods: int, freq: str):
-    index = pd.period_range(start="22-03-2020", periods=periods, freq=freq)
-
-    return pd.concat(
-        [
-            pd.Series(data=np.random.random(size=len(index)), index=index)
-            for _ in range(num_ts)
-        ],
-        axis=1,
-    )
-
-
 @pytest.mark.parametrize(
-    "features_df",
-    [
-        None,
-        random_ts(
-            num_ts=S.shape[0], periods=PERIODS + PREDICTION_LENGTH, freq=FREQ
-        ),
-    ],
+    "use_feat_dynamic_real",
+    [True, False],
 )
-def test_train_prediction(features_df: Optional[pd.DataFrame]):
-    if features_df is not None:
-        use_feat_dynamic_real = True
-        features_df_train = features_df.iloc[:-PREDICTION_LENGTH, :]
-    else:
-        use_feat_dynamic_real = False
-        features_df_train = None
+def test_train_prediction(use_feat_dynamic_real: Optional[pd.DataFrame]):
+    entry = {
+        "start": pd.Period("22-03-2020"),
+        "target": np.random.random(size=(NUM_BOTTOM_TS, PERIODS)),
+    }
+    if use_feat_dynamic_real:
+        entry["feat_dynamic_real"] = np.random.random(size=(3, PERIODS))
 
-    # HTS
-    ts_at_bottom_level = random_ts(
-        num_ts=NUM_BOTTOM_TS,
-        periods=PERIODS,
-        freq="H",
-    )
-    hts = HierarchicalTimeSeries(
-        ts_at_bottom_level=ts_at_bottom_level,
-        S=S,
-    )
-
-    dataset = hts.to_dataset(feat_dynamic_real=features_df_train)
-
+    dataset = HierarchicalDataset([entry], S=S)
     estimator = DeepVARHierarchicalEstimator(
-        freq=hts.freq,
+        freq=FREQ,
         prediction_length=PREDICTION_LENGTH,
         trainer=Trainer(epochs=1, num_batches_per_epoch=1, hybridize=False),
-        S=hts.S,
+        S=S,
         use_feat_dynamic_real=use_feat_dynamic_real,
     )
-
     predictor = estimator.train(dataset)
 
-    predictor_input = hts.to_dataset(feat_dynamic_real=features_df)
-    forecasts = list(predictor.predict(predictor_input))
+    if use_feat_dynamic_real:
+        entry["feat_dynamic_real"] = np.random.random(
+            size=(3, PERIODS + PREDICTION_LENGTH)
+        )
+
+    dataset = HierarchicalDataset([entry], S=S)
+    forecasts = list(predictor.predict(dataset))
 
     assert len(forecasts) == len(dataset)
     assert all(
-        [
-            forecast.samples.shape == (100, PREDICTION_LENGTH, hts.num_ts)
-            for forecast in forecasts
-        ]
+        forecast.samples.shape == (100, PREDICTION_LENGTH, len(S))
+        for forecast in forecasts
     )
