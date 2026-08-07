@@ -46,6 +46,33 @@ def fcst_iterator(fcst, start_dates):
         )
 
 
+def test_mae_coverage_uses_corresponding_quantile():
+    metric_per_ts = pd.DataFrame(
+        {
+            "MSE": [0.0],
+            "abs_error": [0.0],
+            "abs_target_sum": [1.0],
+            "abs_target_mean": [1.0],
+            "seasonal_error": [1.0],
+            "MASE": [0.0],
+            "MAPE": [0.0],
+            "sMAPE": [0.0],
+            "MSIS": [0.0],
+            "num_masked_target_values": [0.0],
+            "QuantileLoss[0.1]": [0.0],
+            "Coverage[0.1]": [0.1],
+            "QuantileLoss[0.9]": [0.0],
+            "Coverage[0.9]": [0.9],
+        }
+    )
+
+    metrics, _ = Evaluator(quantiles=[0.1, 0.9]).get_aggregate_metrics(
+        metric_per_ts
+    )
+
+    assert metrics["MAE_Coverage"] == pytest.approx(0.0)
+
+
 def naive_forecaster(ts, prediction_length, num_samples=100, target_dim=0):
     """
     :param ts: pandas.Series
