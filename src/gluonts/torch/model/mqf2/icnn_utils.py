@@ -23,18 +23,11 @@
 
 from typing import Optional, Tuple, List, Union
 
-try:
-    from cpflows.flows import SequentialFlow, DeepConvexFlow
-except ImportError:
-    raise ImportError(
-        "MQF2 model requires the 'cpflows' package. "
-        "Install the cpflows extra to include it, for example: "
-        'pip install "gluonts[cpflows]" or uv sync --extra cpflows'
-    )
-
 import torch
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
+
+from ._cpflows import SequentialFlow, DeepConvexFlow
 
 
 class DeepConvexNet(DeepConvexFlow):

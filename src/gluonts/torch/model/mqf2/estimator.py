@@ -139,6 +139,14 @@ class MQF2MultiHorizonEstimator(DeepAREstimator):
             threshold_input > 0
         ), "clamping threshold for input must be positive"
 
+        # The model summary runs a forward pass that samples from the PICNN,
+        # which relies on nested ``autograd.grad`` calls that fail with recent
+        # torch versions. Disable it unless the user overrides it explicitly.
+        trainer_kwargs = {
+            "enable_model_summary": False,
+            **(trainer_kwargs or {}),
+        }
+
         distr_output = MQF2DistributionOutput(
             prediction_length=prediction_length,
             is_energy_score=is_energy_score,

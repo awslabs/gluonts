@@ -170,8 +170,13 @@ class StdScaler(Scaler):
                 self.dim, keepdim=self.keepdim
             ) / denominator
 
-            variance = (((data - loc) * weights) ** 2).sum(
+            # Cast to float64 before squaring so that large values (e.g. ~1e20)
+            # don't overflow float32 during the variance computation.
+            # float32 saturates at ~3.4e38, so (x - mean)^2 overflows for
+            # |x - mean| > ~1.8e19. Taking sqrt in float64 first gives a
+            # finite std that fits back into float32.
+            variance = ((data.double() - loc.double()).pow(2) * weights).sum(
                 self.dim, keepdim=self.keepdim
             ) / denominator
-            scale = torch.sqrt(variance + self.minimum_scale)
+            scale = torch.sqrt(variance + self.minimum_scale).to(data.dtype)
             return (data - loc) / scale, loc, scale

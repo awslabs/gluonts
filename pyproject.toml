@@ -1,6 +1,6 @@
 [project]
 name = "gluonts"
-version = "0.17.0.dev0"
+version = "0.18.0.dev0"
 description = "Probabilistic time series modeling in Python."
 readme = "README.md"
 license = { text = "Apache-2.0" }
@@ -35,8 +35,8 @@ keywords = [
 ]
 
 dependencies = [
-    "numpy>=1.24,<2.5; python_version >= '3.12'",
-    "numpy>=1.16,<2.5; python_version < '3.12'",
+    "numpy>=1.24,<3; python_version >= '3.12'",
+    "numpy>=1.16,<3; python_version < '3.12'",
     "pandas>=1.4,<3",
     "pydantic>=1.7,<3",
     "tqdm~=4.23",
@@ -76,7 +76,7 @@ docs = [
     "myst-parser",
     "click",
     "orjson",
-    "black",
+    "black>=26.3.1",
     "holidays~=0.9",
     "matplotlib~=3.6",
 ]
@@ -96,14 +96,10 @@ test = [
 ]
 
 torch = [
-    "torch>=1.13,<3",
-    "lightning>=2.2.2,<2.6",
-    "pytorch_lightning>=2.2.2,<2.6",
+    "torch>=2.10,<3",
+    "lightning>=2.2.2,<2.7",
+    "pytorch_lightning>=2.2.2,<2.7",
     "scipy",
-]
-
-cpflows = [
-    "cpflows @ git+https://github.com/lostella/CP-Flow.git@gluonts-dependency",
 ]
 
 shell = [
@@ -174,7 +170,7 @@ dev = [
     "myst-parser",
     "click",
     "orjson",
-    "black",
+    "black>=26.3.1",
     "holidays~=0.9",
     "matplotlib~=3.6",
     # test
@@ -240,7 +236,7 @@ dev = [
     "types-PyYAML",
     # Linting and formatting
     "ruff==0.2.2",
-    "black==24.02",
+    "black>=26.3.1",
     # Documentation
     "ipython",
     "ipykernel~=6.5",
