@@ -96,8 +96,14 @@ class SampleForecastBatch:
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
         q = Quantile.parse(q).value
-        sample_idx = int(np.round((self.num_samples - 1) * q))
-        return self._sorted_samples[:, sample_idx, :]
+        sample_idx = (self.num_samples - 1) * q
+        lower_idx = int(np.floor(sample_idx))
+        upper_idx = int(np.ceil(sample_idx))
+        weight = sample_idx - lower_idx
+        return (
+            self._sorted_samples[:, lower_idx, :] * (1 - weight)
+            + self._sorted_samples[:, upper_idx, :] * weight
+        )
 
     def __getitem__(self, name):
         if name == "mean":
