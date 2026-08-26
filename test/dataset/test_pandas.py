@@ -393,6 +393,56 @@ def test_pandas_dataset_cases(dataset, expected_entries):
         assert_recursively_equal(entry, expected_entry)
 
 
+def test_constructor_does_not_mutate_caller_index():
+    """
+    Regression test for GH-3263 — the constructor path.
+
+    ``from_long_dataframe`` was fixed to leave the caller's DataFrame
+    alone, but ``PandasDataset(...)`` still reaches
+    ``_pair_to_dataentry``, which rebinds ``df.index`` when ``timestamp``
+    is given and calls ``sort_index(inplace=True)``. Both are visible on
+    the caller's frame.
+    """
+    T = 3
+    df = pd.DataFrame(
+        {
+            "time": pd.to_datetime(
+                ["2021-01-03", "2021-01-01", "2021-01-02"]
+            ),
+            "target": np.array([3.0, 1.0, 2.0]),
+        }
+    )
+    original_index = df.index.copy()
+    original_columns = list(df.columns)
+    original_values = df.values.copy()
+
+    list(pandas.PandasDataset(df, timestamp="time", freq="1D"))
+
+    pd.testing.assert_index_equal(df.index, original_index)
+    assert list(df.columns) == original_columns
+    np.testing.assert_array_equal(df.values, original_values)
+
+
+def test_constructor_does_not_reorder_caller_rows():
+    """
+    Regression test for GH-3263 — the ``sort_index(inplace=True)`` half.
+
+    With a caller-supplied unsorted ``PeriodIndex`` no index assignment
+    happens, but the in-place sort still reorders the caller's rows.
+    """
+    index = pd.PeriodIndex(
+        ["2021-01-03", "2021-01-01", "2021-01-02"], freq="1D"
+    )
+    df = pd.DataFrame({"target": np.array([3.0, 1.0, 2.0])}, index=index)
+    original_index = df.index.copy()
+    original_values = df.values.copy()
+
+    list(pandas.PandasDataset(df, freq="1D"))
+
+    pd.testing.assert_index_equal(df.index, original_index)
+    np.testing.assert_array_equal(df.values, original_values)
+
+
 def test_from_long_dataframe_does_not_mutate_caller_index():
     """
     Regression test for GH-3263.
