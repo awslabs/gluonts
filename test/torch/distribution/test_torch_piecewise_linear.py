@@ -218,3 +218,51 @@ def test_robustness():
     # check that 0 <= crps
     crps_x = distr.crps(x)
     assert torch.min(crps_x).item() >= 0.0
+
+
+@pytest.mark.parametrize(
+    "loc_kwargs",
+    [{}, {"loc": None}],
+    ids=["loc-omitted", "loc-none"],
+)
+def test_scale_without_loc(loc_kwargs: dict):
+    """
+    An omitted or ``None`` ``loc`` must be treated as zero when ``scale``
+    is given, matching ``AffineTransformed`` and every other
+    ``DistributionOutput``.
+
+    Regression test for https://github.com/awslabs/gluonts/issues/3114:
+    ``PiecewiseLinearOutput.distribution`` forwarded ``loc=None`` verbatim
+    into ``AffineTransform``, so the first use of the returned
+    distribution raised ``TypeError: unsupported operand type(s) for +:
+    'NoneType' and 'Tensor'``.
+    """
+    batch_shape = (3,)
+    num_pieces = 4
+
+    gamma = torch.zeros(batch_shape)
+    slopes = torch.ones(*batch_shape, num_pieces)
+    knot_spacings = torch.full((*batch_shape, num_pieces), 1.0 / num_pieces)
+    distr_args = (gamma, slopes, knot_spacings)
+    scale = torch.full(batch_shape, 2.0)
+
+    distr_out = PiecewiseLinearOutput(num_pieces=num_pieces)
+
+    implicit = distr_out.distribution(distr_args, scale=scale, **loc_kwargs)
+    explicit = distr_out.distribution(
+        distr_args, loc=torch.zeros(batch_shape), scale=scale
+    )
+
+    # sampling must work at all, and agree with an explicit zero ``loc``
+    torch.manual_seed(0)
+    implicit_sample = implicit.sample()
+    torch.manual_seed(0)
+    explicit_sample = explicit.sample()
+
+    assert implicit_sample.shape == batch_shape
+    assert torch.isfinite(implicit_sample).all()
+    assert torch.allclose(implicit_sample, explicit_sample)
+
+    # the training path (CRPS) must work too
+    target = torch.ones(batch_shape)
+    assert torch.allclose(implicit.crps(target), explicit.crps(target))
