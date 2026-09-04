@@ -214,14 +214,30 @@ class PyTorchLightningEstimator(Estimator):
                 val_dataloaders=validation_data_loader,
                 ckpt_path=ckpt_path,
             )
-        except Exception as e:
+        except (ValueError, RuntimeError) as e:
+            # This recovery path exists for the numerical-instability
+            # failures training can hit late in a run -- e.g. the
+            # ``StudentTOutput`` NaN ``ValueError`` from #3265, or the
+            # "Expected parameter ... to satisfy the constraint"
+            # ``RuntimeError`` PyTorch sometimes raises instead. Only those
+            # are caught here: unrelated failures (CUDA OOM, dataloader
+            # errors, misconfiguration, ``KeyboardInterrupt``/``SystemExit``)
+            # are not ``ValueError``/``RuntimeError`` and propagate as the
+            # hard stops they are, instead of being masked by a stale
+            # checkpoint from a much earlier epoch.
             if checkpoint.best_model_path == "":
                 logger.error("Training failed with no checkpoint available")
                 raise
             else:
+                # ``exc_info=True`` keeps the full traceback in the log so the
+                # recovered-from failure can still be diagnosed. Note only the
+                # model weights are restored below, not the optimizer, LR
+                # scheduler, RNG, or dataloader state.
                 logger.warning(
-                    "Recovering from a checkpoint after training failed "
-                    f"with the following exception:\n {e}"
+                    "Recovering from the best checkpoint after training "
+                    "failed with the following exception (only model weights "
+                    "are restored, not optimizer/scheduler/RNG state):",
+                    exc_info=True,
                 )
 
         if checkpoint.best_model_path != "":
