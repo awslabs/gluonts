@@ -20,7 +20,7 @@ import pytest
 import pandas as pd
 import numpy as np
 from lightning import seed_everything
-from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.callbacks import Callback, ModelCheckpoint
 
 from gluonts.dataset.repository import get_dataset
 from gluonts.model.predictor import Predictor
@@ -431,4 +431,21 @@ def test_estimator_recovers_if_exception_encountered_during_training():
     predictor = estimator.train(dataset.train)
     forecast = list(predictor.predict(dataset.train))
     assert callback.raised
+    assert isinstance(forecast[0].mean, np.ndarray)
+
+
+def test_estimator_respects_enable_checkpointing_false():
+    dataset = get_dataset("constant")
+    estimator = DeepAREstimator(
+        freq=dataset.metadata.freq,
+        prediction_length=5,
+        batch_size=4,
+        num_batches_per_epoch=3,
+        trainer_kwargs=dict(max_epochs=1, enable_checkpointing=False),
+    )
+    output = estimator.train_model(dataset.train)
+    assert not any(
+        isinstance(cb, ModelCheckpoint) for cb in output.trainer.callbacks
+    )
+    forecast = list(islice(output.predictor.predict(dataset.train), 1))
     assert isinstance(forecast[0].mean, np.ndarray)
