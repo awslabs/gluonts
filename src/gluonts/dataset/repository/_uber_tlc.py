@@ -62,7 +62,7 @@ def generate_uber_dataset(
     train_data = []
     test_data = []
     for locationID, df in time_series_of_locations:
-        df.sort_index()
+        df = df.sort_index()
         df.index = pd.to_datetime(df.index)
 
         count_series = df.resample(rule=freq_setting).size()
