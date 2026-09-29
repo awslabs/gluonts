@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Optional, Iterable, Dict, Any
+from typing import Union, Optional, Iterable, Dict, Any
 
 import torch
 import lightning.pytorch as pl
@@ -292,7 +292,10 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
         )
 
     def create_predictor(
-        self, transformation: Transformation, module
+        self,
+        transformation: Transformation,
+        module,
+        device: Union[str, torch.device] = "auto",
     ) -> PyTorchPredictor:
         prediction_splitter = self._create_instance_splitter(module, "test")
 
@@ -311,5 +314,5 @@ class PatchTSTEstimator(PyTorchLightningEstimator):
             forecast_generator=self.distr_output.forecast_generator,
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
-            device="auto",
+            device=device,
         )
