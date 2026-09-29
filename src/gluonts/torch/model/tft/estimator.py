@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Union, Any, Dict, Iterable, List, Optional
 
 import numpy as np
 import torch
@@ -402,6 +402,7 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
         self,
         transformation: Transformation,
         module: TemporalFusionTransformerLightningModule,
+        device: Union[str, torch.device] = "auto",
     ) -> PyTorchPredictor:
         # TODO
         prediction_splitter = self._create_instance_splitter("test")
@@ -412,6 +413,6 @@ class TemporalFusionTransformerEstimator(PyTorchLightningEstimator):
             prediction_net=module,
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
-            device="auto",
+            device=device,
             forecast_generator=self.distr_output.forecast_generator,
         )

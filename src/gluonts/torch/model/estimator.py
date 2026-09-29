@@ -11,8 +11,9 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import NamedTuple, Optional, Iterable, Dict, Any
+from typing import NamedTuple, Optional, Iterable, Dict, Any, Union
 import logging
+import inspect
 
 import numpy as np
 import lightning.pytorch as pl
@@ -84,6 +85,7 @@ class PyTorchLightningEstimator(Estimator):
         self,
         transformation: Transformation,
         module,
+        device: Union[str, torch.device] = "auto",
     ) -> PyTorchPredictor:
         """
         Create and return a predictor object.
@@ -94,6 +96,8 @@ class PyTorchLightningEstimator(Estimator):
             Transformation to be applied to data before it goes into the model.
         module
             A trained `pl.LightningModule` object.
+        device
+            Device the returned predictor is placed on; 'auto' uses CUDA when available.
 
         Returns
         -------
@@ -143,6 +147,26 @@ class PyTorchLightningEstimator(Estimator):
             The data loader, i.e. and iterable over batches of data.
         """
         raise NotImplementedError
+
+    def _predictor_device(self, trainer: pl.Trainer) -> str:
+        accelerator = self.trainer_kwargs.get("accelerator", "auto")
+        if (
+            accelerator != "auto"
+            and trainer.strategy.root_device.type == "cpu"
+        ):
+            print("ROOT DEVICE IS:", trainer.strategy.root_device.type)
+            return "cpu"
+        return "auto"
+
+    def _create_predictor_on(
+        self, transformation: Transformation, module, device: str
+    ) -> PyTorchPredictor:
+        if "device" in inspect.signature(self.create_predictor).parameters:
+            return self.create_predictor(transformation, module, device=device)
+        predictor = self.create_predictor(transformation, module)
+        if device != "auto" and isinstance(predictor, PyTorchPredictor):
+            predictor.to(device)
+        return predictor
 
     def train_model(
         self,
@@ -241,11 +265,14 @@ class PyTorchLightningEstimator(Estimator):
         else:
             best_model = training_network
 
+        predictor = self._create_predictor_on(
+            transformation, best_model, self._predictor_device(trainer)
+        )
         return TrainOutput(
             transformation=transformation,
             trained_net=best_model,
             trainer=trainer,
-            predictor=self.create_predictor(transformation, best_model),
+            predictor=predictor,
         )
 
     @staticmethod
