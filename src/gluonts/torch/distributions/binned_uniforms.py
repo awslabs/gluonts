@@ -449,7 +449,7 @@ class BinnedUniformsOutput(DistributionOutput):
         bins_upper_bound: float,
         num_bins: int,
     ) -> None:
-        super().__init__(self)
+        super().__init__()
 
         assert (
             isinstance(num_bins, int) and num_bins > 1
@@ -469,10 +469,12 @@ class BinnedUniformsOutput(DistributionOutput):
         )
 
     @classmethod
-    def domain_map(cls, logits: torch.Tensor) -> torch.Tensor:  # type: ignore
+    def domain_map(  # type: ignore
+        cls, logits: torch.Tensor
+    ) -> Tuple[torch.Tensor]:
         logits = torch.abs(logits)
 
-        return logits
+        return (logits,)
 
     def distribution(
         self,
@@ -483,7 +485,7 @@ class BinnedUniformsOutput(DistributionOutput):
         return self.distr_cls(
             self.bins_lower_bound,
             self.bins_upper_bound,
-            distr_args,
+            *distr_args,
             self.num_bins,
         )
 
