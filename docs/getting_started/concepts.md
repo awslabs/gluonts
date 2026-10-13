@@ -47,12 +47,6 @@ predictor = estimator.train(train_data)
 predictor = ProphetPredictor(prediction_length=24)
 ```
 
-```{warning}
-`Predictor.deserialize` builds the Python types named inside the model
-artifact. Only load models from a trusted source. A malicious model file can
-cause unexpected objects to be constructed at load time.
-```
-
 ## Dataset
 
 In GluonTS, a `Dataset` is a collection of time series objects. Each of these
