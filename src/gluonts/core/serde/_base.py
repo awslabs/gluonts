@@ -298,8 +298,8 @@ decode_disallow = [
 
 MAX_DECODE_DEPTH = 64
 
-# `decode` only resolves types that `encode` is known to produce. A class or
-# callable not covered by the checks below is rejected.
+# `decode` only instantiates types that `encode` is known to produce. A class
+# not covered by the checks below is rejected rather than instantiated.
 
 # Builtins that `encode` emits directly (tuples/sets, methods via `getattr`,
 # `functools.partial`).
@@ -328,9 +328,9 @@ decode_allow_fqnames = frozenset(
 
 def _is_decode_safe(cls: Any, class_name: str) -> bool:
     """
-    Whether ``cls`` (located from ``class_name``) is safe for
-    :func:`decode` to resolve. Only targets that :func:`encode` is known to
-    produce are allowed.
+    Whether ``cls`` (located from ``class_name``) is a type that
+    :func:`decode` should instantiate. Only targets that :func:`encode` is
+    known to produce are allowed.
     """
     if class_name in decode_allow_fqnames:
         return True
@@ -382,12 +382,6 @@ def decode(r: Any) -> Any:
     """
     Decodes a value from an intermediate representation `r`.
 
-    .. warning::
-
-       ``decode`` resolves and constructs the Python types named in ``r``.
-       Only decode values from a trusted source. A malicious value can cause
-       unexpected objects to be constructed at load time.
-
     Parameters
     ----------
     r
@@ -423,8 +417,11 @@ def _decode(r: Any, depth: int) -> Any:
             raise ValueError(f"{r['class']} cannot be run.")
 
         if kind == Kind.Type:
+            # `Kind.Type` returns the located object without calling it.
             return cls
 
+        # `Kind.Instance` and `Kind.Stateful` both instantiate `cls`, so it is
+        # restricted to the types `encode` can produce.
         if not _is_decode_safe(cls, r["class"]):
             raise ValueError(
                 f"{r['class']} is not a serde-decodable type and "

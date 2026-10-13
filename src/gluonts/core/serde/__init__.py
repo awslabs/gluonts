@@ -18,12 +18,6 @@ gluonts.core.serde
 Simple Serialization/Deserialization framework that uses human-readable
 json-encodings to represent data.
 
-.. warning::
-
-   Deserialization resolves and constructs the Python types named in the
-   serialized value. Only load values from a trusted source. A malicious value
-   can cause unexpected objects to be constructed at load time.
-
 In some ways, it is an alternative to `pickle`, but instead of using a binary
 encoding, `serde` outputs json-compatible text. This has two main advantages:
 It is human-readable and the encoding works across different Python versions.

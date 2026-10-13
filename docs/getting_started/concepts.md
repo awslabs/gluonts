@@ -47,18 +47,6 @@ predictor = estimator.train(train_data)
 predictor = ProphetPredictor(prediction_length=24)
 ```
 
-Predictors can be saved and loaded with `serialize` and `deserialize`:
-
-```py
-from pathlib import Path
-
-from gluonts.model.predictor import Predictor
-
-model_path = Path("model")
-predictor.serialize(model_path)
-predictor = Predictor.deserialize(model_path)
-```
-
 ```{warning}
 `Predictor.deserialize` builds the Python types named inside the model
 artifact. Only load models from a trusted source. A malicious model file can

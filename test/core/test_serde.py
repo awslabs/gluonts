@@ -11,6 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import os
 from functools import partial
 from operator import add
 from pathlib import Path
@@ -219,17 +220,7 @@ def test_decode_rejects_arbitrary_callables(class_name, kind):
 
 def test_decode_rejects_partial_with_arbitrary_callable():
     with pytest.raises(ValueError):
-        serde.decode(
-            {
-                "__kind__": "instance",
-                "class": "functools.partial",
-                "args": [
-                    {"__kind__": "type", "class": "os.system"},
-                    "echo unsafe",
-                ],
-                "kwargs": {},
-            }
-        )
+        serde.decode(serde.encode(partial(os.system, "echo unsafe")))
 
 
 def test_decode_rejects_excessive_depth():
