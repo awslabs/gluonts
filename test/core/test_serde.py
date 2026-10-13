@@ -225,9 +225,7 @@ def test_decode_rejects_partial_with_arbitrary_callable():
 
 def test_decode_rejects_partial_factory():
     with pytest.raises(ValueError):
-        serde.decode(
-            serde.encode(partial(partial, os.system, "echo unsafe"))
-        )
+        serde.decode(serde.encode(partial(partial, os.system, "echo unsafe")))
 
 
 def test_decode_rejects_getattr_partial():
