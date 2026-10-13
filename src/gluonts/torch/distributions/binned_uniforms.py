@@ -128,7 +128,7 @@ class BinnedUniforms(Distribution):
         # bin_centres.shape: (1, numb_bins)
         bin_centres = bin_centres.repeat(batch_shape_extended)
         # bin_centres.shape: (*batch_shape, numb_bins)
-        return torch.mean(bin_centres * self.bins_prob, dim=-1)
+        return torch.sum(bin_centres * self.bins_prob, dim=-1)
 
     @property
     def bins_prob(self):
