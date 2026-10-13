@@ -38,6 +38,7 @@ from .spliced_binned_pareto import (
 )
 from .studentT import StudentTOutput
 from .truncated_normal import TruncatedNormal, TruncatedNormalOutput
+from .tweedie import Tweedie, TweedieOutput
 
 __all__ = [
     "AffineTransformed",
@@ -66,4 +67,6 @@ __all__ = [
     "StudentTOutput",
     "TruncatedNormal",
     "TruncatedNormalOutput",
+    "Tweedie",
+    "TweedieOutput",
 ]
