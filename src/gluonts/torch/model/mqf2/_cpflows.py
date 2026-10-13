@@ -68,7 +68,7 @@ def log_standard_normal(x):
 # ---------------------------------------------------------------------------
 
 EPS = 1e-7
-CG_ITERS_TRACER = list()
+CG_ITERS_TRACER: list[int] = []
 
 
 def gram_schmidt_ortho(Q, v, tol=1e-5):
@@ -404,7 +404,7 @@ class SequentialFlow(torch.nn.Module):
 # Convex potential flows (from cpflows/flows/cpflows.py)
 # ---------------------------------------------------------------------------
 
-HESS_NORM_TRACER = list()
+HESS_NORM_TRACER: list[Tensor] = []
 
 
 class DeepConvexFlow(torch.nn.Module):
