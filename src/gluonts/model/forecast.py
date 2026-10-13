@@ -23,7 +23,6 @@ from gluonts.core.component import validated
 from gluonts.pydantic import dataclass
 from gluonts import maybe
 
-
 logger = logging.getLogger(__name__)
 
 MEAN_NOT_STORED_MSG = (
@@ -491,8 +490,16 @@ class SampleForecast(Forecast):
 
     def quantile(self, q: Union[float, str]) -> np.ndarray:
         q = Quantile.parse(q).value
-        sample_idx = int(np.round((self.num_samples - 1) * q))
-        return self._sorted_samples[sample_idx, :]
+        # Match NumPy's default linear interpolation while reusing the cached
+        # sorted samples across the many quantiles used during evaluation.
+        sample_idx = (self.num_samples - 1) * q
+        lower_idx = int(np.floor(sample_idx))
+        upper_idx = int(np.ceil(sample_idx))
+        weight = sample_idx - lower_idx
+        return (
+            self._sorted_samples[lower_idx, :] * (1 - weight)
+            + self._sorted_samples[upper_idx, :] * weight
+        )
 
     def copy_dim(self, dim: int) -> "SampleForecast":
         if len(self.samples.shape) == 2:

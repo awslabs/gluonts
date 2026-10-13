@@ -75,6 +75,35 @@ def test_forecast(name):
     forecast.plot()
 
 
+@pytest.mark.parametrize("num_samples", [4, 5])
+@pytest.mark.parametrize("multivariate", [False, True])
+def test_sample_forecast_quantiles_match_numpy(num_samples, multivariate):
+    samples = np.array(
+        [
+            [[0, 100], [10, 110]],
+            [[2, 102], [12, 112]],
+            [[8, 108], [18, 118]],
+            [[10, 110], [20, 120]],
+            [[15, 115], [25, 125]],
+        ]
+    )[:num_samples]
+    if not multivariate:
+        samples = samples[:, :, 0]
+
+    forecast = SampleForecast(samples=samples, start_date=START_DATE)
+
+    for quantile in [0.0, 0.25, 0.5, 0.9, 1.0]:
+        np.testing.assert_allclose(
+            forecast.quantile(quantile),
+            np.quantile(samples, quantile, axis=0),
+        )
+
+    np.testing.assert_allclose(
+        forecast.median,
+        np.median(samples, axis=0),
+    )
+
+
 def test_mean_only_forecast():
     forecast = QuantileForecast(
         forecast_arrays=np.ones(shape=(1, 12)),
