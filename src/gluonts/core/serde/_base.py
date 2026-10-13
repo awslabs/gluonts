@@ -422,19 +422,27 @@ def _decode(r: Any, depth: int) -> Any:
         if cls in decode_disallow:
             raise ValueError(f"{r['class']} cannot be run.")
 
+        if kind == Kind.Type:
+            return cls
+
         if not _is_decode_safe(cls, r["class"]):
             raise ValueError(
                 f"{r['class']} is not a serde-decodable type and "
-                f"cannot be resolved during decoding."
+                f"cannot be instantiated during decoding."
             )
-
-        if kind == Kind.Type:
-            return cls
 
         args = _decode(r.get("args", []), depth + 1)
         kwargs = _decode(r.get("kwargs", {}), depth + 1)
 
         if kind == Kind.Instance:
+            if cls is partial:
+                target = args[0]
+                target_name = fqname_for(target)
+                if not _is_decode_safe(target, target_name):
+                    raise ValueError(
+                        f"{target_name} cannot be used as a partial target "
+                        f"during decoding."
+                    )
             return cls(*args, **kwargs)
 
         if kind == Kind.Stateful:

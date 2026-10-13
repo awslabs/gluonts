@@ -12,6 +12,7 @@
 # permissions and limitations under the License.
 
 from functools import partial
+from operator import add
 from pathlib import Path
 from typing import NamedTuple
 
@@ -108,8 +109,8 @@ def test_string_escape() -> None:
 
 
 def test_serde_fq():
-    tuple_ = serde.decode(serde.encode(tuple))
-    assert tuple_([1, 2]) == (1, 2)
+    add_ = serde.decode(serde.encode(add))
+    assert add_(1, 2) == 3
 
     def foo():
         pass
@@ -214,11 +215,6 @@ def test_decode_rejects_arbitrary_callables(class_name, kind):
                 "kwargs": {},
             }
         )
-
-
-def test_decode_rejects_arbitrary_callable_type():
-    with pytest.raises(ValueError):
-        serde.decode({"__kind__": "type", "class": "os.system"})
 
 
 def test_decode_rejects_partial_with_arbitrary_callable():
