@@ -12,7 +12,6 @@
 # permissions and limitations under the License.
 
 from functools import partial
-from operator import add
 from pathlib import Path
 from typing import NamedTuple
 
@@ -22,6 +21,7 @@ import pytest
 
 from gluonts.core.component import equals, equals_list
 from gluonts.core import serde
+from gluonts.core.serde._base import MAX_DECODE_DEPTH
 
 
 class Span(NamedTuple):
@@ -108,8 +108,8 @@ def test_string_escape() -> None:
 
 
 def test_serde_fq():
-    add_ = serde.decode(serde.encode(add))
-    assert add_(1, 2) == 3
+    tuple_ = serde.decode(serde.encode(tuple))
+    assert tuple_([1, 2]) == (1, 2)
 
     def foo():
         pass
@@ -119,11 +119,11 @@ def test_serde_fq():
 
 
 def test_serde_partial():
-    add_1 = partial(add, 1)
+    make_tuple = partial(tuple, [1, 2])
 
-    add_1_ = serde.decode(serde.encode(add_1))
+    make_tuple_ = serde.decode(serde.encode(make_tuple))
 
-    assert add_1_(2) == 3
+    assert make_tuple_() == (1, 2)
 
 
 class X(serde.Stateless):
@@ -214,6 +214,35 @@ def test_decode_rejects_arbitrary_callables(class_name, kind):
                 "kwargs": {},
             }
         )
+
+
+def test_decode_rejects_arbitrary_callable_type():
+    with pytest.raises(ValueError):
+        serde.decode({"__kind__": "type", "class": "os.system"})
+
+
+def test_decode_rejects_partial_with_arbitrary_callable():
+    with pytest.raises(ValueError):
+        serde.decode(
+            {
+                "__kind__": "instance",
+                "class": "functools.partial",
+                "args": [
+                    {"__kind__": "type", "class": "os.system"},
+                    "echo unsafe",
+                ],
+                "kwargs": {},
+            }
+        )
+
+
+def test_decode_rejects_excessive_depth():
+    value = None
+    for _ in range(MAX_DECODE_DEPTH + 1):
+        value = [value]
+
+    with pytest.raises(ValueError, match="Maximum serde decoding depth"):
+        serde.decode(value)
 
 
 def test_decode_rejects_unknown_class_in_predictor(tmp_path):

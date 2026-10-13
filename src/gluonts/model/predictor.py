@@ -92,6 +92,13 @@ class Predictor:
         """
         Load a serialized predictor from the given path.
 
+        .. warning::
+
+           ``deserialize`` builds the Python types named inside the model
+           artifact. Only load models from a trusted source. A malicious
+           model file can cause unexpected objects to be constructed at
+           load time.
+
         Parameters
         ----------
         path

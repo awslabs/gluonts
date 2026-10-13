@@ -38,7 +38,12 @@ from typing import Any
 
 from toolz.dicttoolz import keymap, valmap
 
-from ._base import encode as base_encode, Kind, decode as base_decode
+from ._base import (
+    MAX_DECODE_DEPTH,
+    Kind,
+    decode as base_decode,
+    encode as base_encode,
+)
 
 
 def join(a, b, sep="."):
@@ -103,20 +108,25 @@ def nest(data):
     return _asdict(trie)
 
 
-def get_args(data):
+def get_args(data, depth):
     args = []
     for idx in map(str, count(start=0)):
         if idx not in data:
             return args
-        args.append(_translate(data.pop(idx)))
+        args.append(_translate(data.pop(idx), depth + 1))
 
 
-def _translate(data):
+def _translate(data, depth=0):
+    if depth > MAX_DECODE_DEPTH:
+        raise ValueError(
+            f"Maximum serde decoding depth of {MAX_DECODE_DEPTH} exceeded."
+        )
+
     if isinstance(data, dict):
         if "()" in data:
             ty = data.pop("()")
-            args = get_args(data)
-            kwargs = valmap(_translate, data)
+            args = get_args(data, depth)
+            kwargs = valmap(lambda value: _translate(value, depth + 1), data)
 
             return {
                 "__kind__": "instance",
@@ -127,7 +137,7 @@ def _translate(data):
 
         if "!" in data:
             ty = data.pop("!")
-            kwargs = valmap(_translate, data)
+            kwargs = valmap(lambda value: _translate(value, depth + 1), data)
 
             return {
                 "__kind__": "stateful",
@@ -141,17 +151,23 @@ def _translate(data):
                 "class": data.pop("#"),
             }
 
-        return valmap(_translate, data)
+        return valmap(lambda value: _translate(value, depth + 1), data)
 
     if isinstance(data, list):
-        return list(map(_translate, data))
+        return [_translate(value, depth + 1) for value in data]
 
     return data
 
 
 def decode(data: dict) -> Any:
     def split_path(s):
-        return tuple(s.split("."))
+        parts = tuple(s.split("."))
+        if len(parts) > MAX_DECODE_DEPTH:
+            raise ValueError(
+                f"Maximum serde decoding depth of "
+                f"{MAX_DECODE_DEPTH} exceeded."
+            )
+        return parts
 
     nested = nest(keymap(split_path, data))
     encoded = _translate(nested)

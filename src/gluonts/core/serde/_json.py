@@ -59,6 +59,12 @@ def load_json(s: str) -> Any:
     """
     Deserializes an object from a JSON string.
 
+    .. warning::
+
+       ``load_json`` resolves and constructs the Python types named in the
+       serialized value. Only load values from a trusted source. A malicious
+       value can cause unexpected objects to be constructed at load time.
+
     Parameters
     ----------
     s
