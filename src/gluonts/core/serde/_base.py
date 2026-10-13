@@ -433,9 +433,13 @@ def _decode(r: Any, depth: int) -> Any:
 
         if kind == Kind.Instance:
             if cls is partial:
+                if not args:
+                    raise ValueError("functools.partial requires a target.")
                 target = args[0]
                 target_name = fqname_for(target)
-                if not _is_decode_safe(target, target_name):
+                if target in (partial, getattr) or not _is_decode_safe(
+                    target, target_name
+                ):
                     raise ValueError(
                         f"{target_name} cannot be used as a partial target "
                         f"during decoding."

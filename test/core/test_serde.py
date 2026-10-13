@@ -223,6 +223,41 @@ def test_decode_rejects_partial_with_arbitrary_callable():
         serde.decode(serde.encode(partial(os.system, "echo unsafe")))
 
 
+def test_decode_rejects_partial_factory():
+    with pytest.raises(ValueError):
+        serde.decode(
+            serde.encode(partial(partial, os.system, "echo unsafe"))
+        )
+
+
+def test_decode_rejects_getattr_partial():
+    with pytest.raises(ValueError):
+        serde.decode(
+            {
+                "__kind__": "instance",
+                "class": "functools.partial",
+                "args": [
+                    {"__kind__": "type", "class": "builtins.getattr"},
+                    {"__kind__": "type", "class": "os"},
+                    "system",
+                ],
+                "kwargs": {},
+            }
+        )
+
+
+def test_decode_rejects_partial_without_target():
+    with pytest.raises(ValueError, match="requires a target"):
+        serde.decode(
+            {
+                "__kind__": "instance",
+                "class": "functools.partial",
+                "args": [],
+                "kwargs": {},
+            }
+        )
+
+
 def test_decode_rejects_excessive_depth():
     value = None
     for _ in range(MAX_DECODE_DEPTH + 1):
