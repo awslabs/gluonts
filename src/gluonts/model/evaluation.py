@@ -15,6 +15,7 @@ import logging
 from collections import ChainMap
 from typing import Iterable, List, Optional, Union
 from dataclasses import dataclass
+from itertools import zip_longest
 from toolz import first, valmap
 
 import numpy as np
@@ -119,6 +120,11 @@ def evaluate_forecasts_raw(
     - ``2`` aggregates across the second data dimension (time, in the multivariate setting)
 
     Return results as a dictionary.
+
+    Raises
+    ------
+    ValueError
+        If the input, label, and forecast iterables have different lengths.
     """
     label_ndim = first(test_data.label)["target"].ndim
 
@@ -142,32 +148,43 @@ def evaluate_forecasts_raw(
     label_batches = batcher(test_data.label, batch_size=batch_size)
     forecast_batches = batcher(forecasts, batch_size=batch_size)
 
-    pbar = tqdm()
-    for input_batch, label_batch, forecast_batch in zip(
-        input_batches, label_batches, forecast_batches
-    ):
-        if 0 not in axis:
-            index_data.extend(
-                [
-                    (forecast.item_id, forecast.start_date)
-                    for forecast in forecast_batch
-                ]
+    with tqdm() as pbar:
+        for input_batch, label_batch, forecast_batch in zip_longest(
+            input_batches, label_batches, forecast_batches
+        ):
+            if (
+                input_batch is None
+                or label_batch is None
+                or forecast_batch is None
+                or len(input_batch) != len(label_batch)
+                or len(label_batch) != len(forecast_batch)
+            ):
+                raise ValueError(
+                    "Input, label, and forecast iterables must have the "
+                    "same number of entries."
+                )
+
+            if 0 not in axis:
+                index_data.extend(
+                    [
+                        (forecast.item_id, forecast.start_date)
+                        for forecast in forecast_batch
+                    ]
+                )
+
+            data_batch = _get_data_batch(
+                input_batch,
+                label_batch,
+                forecast_batch,
+                seasonality=seasonality,
+                mask_invalid_label=mask_invalid_label,
+                allow_nan_forecast=allow_nan_forecast,
             )
 
-        data_batch = _get_data_batch(
-            input_batch,
-            label_batch,
-            forecast_batch,
-            seasonality=seasonality,
-            mask_invalid_label=mask_invalid_label,
-            allow_nan_forecast=allow_nan_forecast,
-        )
+            for evaluator in evaluators.values():
+                evaluator.update(data_batch)
 
-        for evaluator in evaluators.values():
-            evaluator.update(data_batch)
-
-        pbar.update(len(forecast_batch))
-    pbar.close()
+            pbar.update(len(forecast_batch))
 
     metrics_values = {
         metric_name: evaluator.get()

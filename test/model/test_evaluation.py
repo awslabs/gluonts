@@ -256,3 +256,52 @@ def test_data_nan():
             axis=axis,
         )
         assert not np.any(df1.isna())
+
+
+@pytest.mark.parametrize("batch_size", [1, 2, 100])
+@pytest.mark.parametrize("forecast_count", [0, 1, 2, 3])
+@pytest.mark.parametrize("axis", [None, 1])
+def test_evaluate_forecasts_count(batch_size, forecast_count, axis):
+    dataset = [
+        {
+            "item_id": str(item_id),
+            "start": pd.Period("2022-06-12", freq="D"),
+            "target": np.array([0.0, 0.0, target]),
+        }
+        for item_id, target in enumerate((10.0, 30.0))
+    ]
+    test_data = split(dataset, offset=-1)[1].generate_instances(
+        prediction_length=1
+    )
+    forecasts = (
+        SampleForecast(
+            samples=np.array([[prediction]]),
+            start_date=pd.Period("2022-06-14", freq="D"),
+            item_id=str(item_id),
+        )
+        for item_id, prediction in enumerate(
+            (0.0, 30.0, 99.0)[:forecast_count]
+        )
+    )
+
+    if forecast_count != 2:
+        with pytest.raises(ValueError, match="same number of entries"):
+            evaluate_forecasts(
+                forecasts,
+                test_data=test_data,
+                metrics=[MSE()],
+                axis=axis,
+                batch_size=batch_size,
+            )
+    else:
+        metrics_df = evaluate_forecasts(
+            forecasts,
+            test_data=test_data,
+            metrics=[MSE()],
+            axis=axis,
+            batch_size=batch_size,
+        )
+        expected_mse = [50.0] if axis is None else [100.0, 0.0]
+        np.testing.assert_allclose(metrics_df["MSE[mean]"], expected_mse)
+        if axis == 1:
+            assert list(metrics_df.index.get_level_values(0)) == ["0", "1"]
