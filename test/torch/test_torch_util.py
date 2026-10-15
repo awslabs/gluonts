@@ -19,7 +19,17 @@ import torch
 from gluonts.torch.util import (
     lagged_sequence_values,
     unsqueeze_expand,
+    weighted_average,
 )
+
+
+def test_weighted_average_dim_zero():
+    x = torch.tensor([[1.0, 10.0], [3.0, 30.0]])
+    weights = torch.tensor([[1.0, 1.0], [3.0, 1.0]])
+
+    result = weighted_average(x, weights=weights, dim=0)
+
+    torch.testing.assert_close(result, torch.tensor([2.5, 20.0]))
 
 
 @pytest.mark.parametrize(
