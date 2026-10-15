@@ -164,6 +164,11 @@ class PandasDataset:
     def _pair_to_dataentry(self, item_id, df) -> DataEntry:
         if isinstance(df, pd.Series):
             df = df.to_frame(name=self.target)
+        else:
+            # Shallow copy: the index assignment and the in-place sort below
+            # are otherwise visible side effects on the caller's dataframe.
+            # See GH-3263.
+            df = df.copy(deep=False)
 
         if self.timestamp:
             df.index = pd.DatetimeIndex(df[self.timestamp]).to_period(
