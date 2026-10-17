@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Any, Dict, List, Optional, Iterable
+from typing import Union, Any, Dict, List, Optional, Iterable
 
 import lightning.pytorch as pl
 import torch
@@ -402,7 +402,10 @@ class WaveNetEstimator(PyTorchLightningEstimator):
         )
 
     def create_predictor(
-        self, transformation: Transformation, module: WaveNetLightningModule
+        self,
+        transformation: Transformation,
+        module: WaveNetLightningModule,
+        device: Union[str, torch.device] = "auto",
     ) -> PyTorchPredictor:
         prediction_splitter = self._create_instance_splitter("test")
 
@@ -412,5 +415,5 @@ class WaveNetEstimator(PyTorchLightningEstimator):
             prediction_net=module,
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
-            device="auto",
+            device=device,
         )

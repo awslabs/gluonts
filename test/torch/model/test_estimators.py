@@ -175,6 +175,8 @@ def test_estimator_constant_dataset(
     constant = get_dataset("constant")
 
     estimator = estimator_constructor(constant)
+    if hasattr(estimator, "trainer_kwargs"):
+        estimator.trainer_kwargs["accelerator"] = "cpu"
 
     if use_validation_data:
         predictor = estimator.train(
@@ -390,6 +392,8 @@ def test_estimator_with_features(estimator_constructor):
     ]
 
     estimator = estimator_constructor(freq, prediction_length)
+    if hasattr(estimator, "trainer_kwargs"):
+        estimator.trainer_kwargs["accelerator"] = "cpu"
 
     predictor = estimator.train(
         training_data=training_dataset,
@@ -432,3 +436,89 @@ def test_estimator_recovers_if_exception_encountered_during_training():
     forecast = list(predictor.predict(dataset.train))
     assert callback.raised
     assert isinstance(forecast[0].mean, np.ndarray)
+
+
+@pytest.mark.parametrize(
+    "estimator_constructor",
+    [
+        lambda dataset: SimpleFeedForwardEstimator(
+            prediction_length=2,
+            batch_size=4,
+            num_batches_per_epoch=1,
+            trainer_kwargs=dict(max_epochs=1, accelerator="cpu"),
+        ),
+        lambda dataset: DeepAREstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=2,
+            batch_size=4,
+            num_batches_per_epoch=1,
+            trainer_kwargs=dict(max_epochs=1, accelerator="cpu"),
+        ),
+        lambda dataset: DLinearEstimator(
+            prediction_length=2,
+            batch_size=4,
+            num_batches_per_epoch=1,
+            trainer_kwargs=dict(max_epochs=1, accelerator="cpu"),
+        ),
+        lambda dataset: TiDEEstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=2,
+            batch_size=4,
+            num_batches_per_epoch=1,
+            trainer_kwargs=dict(max_epochs=1, accelerator="cpu"),
+        ),
+    ],
+)
+def test_predictor_respects_explicit_cpu_accelerator(
+    estimator_constructor, monkeypatch
+):
+    monkeypatch.setattr(
+        "gluonts.torch.model.predictor.resolve_device",
+        lambda d: "cuda" if d == "auto" else d,
+    )
+    constant = get_dataset("constant")
+    estimator = estimator_constructor(constant)
+    if hasattr(estimator, "trainer_kwargs"):
+        estimator.trainer_kwargs["accelerator"] = "cpu"
+    predictor = estimator.train(training_data=constant.train)
+
+    assert predictor.device == "cpu"
+    assert next(predictor.prediction_net.parameters()).device.type == "cpu"
+
+    forecasts = list(islice(predictor.predict(constant.test), 2))
+    assert len(forecasts) > 0
+
+    with tempfile.TemporaryDirectory() as td:
+        predictor.serialize(Path(td))
+        predictor_copy = Predictor.deserialize(Path(td))
+    assert predictor == predictor_copy
+
+
+def test_predictor_device_stays_auto_by_default():
+    dataset = get_dataset("constant")
+    estimator = SimpleFeedForwardEstimator(
+        prediction_length=2,
+        batch_size=4,
+        num_batches_per_epoch=1,
+        trainer_kwargs=dict(max_epochs=1),
+    )
+    predictor = estimator.train(training_data=dataset.train)
+    assert predictor.__init_args__["device"] == "auto"
+
+
+class LegacySimpleFeedForwardEstimator(SimpleFeedForwardEstimator):
+    def create_predictor(self, transformation, module):
+        return super().create_predictor(transformation, module)
+
+
+def test_predictor_legacy_create_predictor():
+    dataset = get_dataset("constant")
+    estimator = LegacySimpleFeedForwardEstimator(
+        prediction_length=2,
+        batch_size=4,
+        num_batches_per_epoch=1,
+        trainer_kwargs=dict(max_epochs=1, accelerator="cpu"),
+    )
+    predictor = estimator.train(training_data=dataset.train)
+    assert predictor.device == "cpu"
+    assert next(predictor.prediction_net.parameters()).device.type == "cpu"

@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import List, Optional, Iterable, Dict, Any
+from typing import Union, List, Optional, Iterable, Dict, Any
 
 import torch
 
@@ -404,6 +404,7 @@ class DeepAREstimator(PyTorchLightningEstimator):
         self,
         transformation: Transformation,
         module: DeepARLightningModule,
+        device: Union[str, torch.device] = "auto",
     ) -> PyTorchPredictor:
         prediction_splitter = self._create_instance_splitter(module, "test")
 
@@ -413,5 +414,5 @@ class DeepAREstimator(PyTorchLightningEstimator):
             prediction_net=module,
             batch_size=self.batch_size,
             prediction_length=self.prediction_length,
-            device="auto",
+            device=device,
         )
