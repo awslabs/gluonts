@@ -19,8 +19,9 @@ from pathlib import Path
 import pytest
 import pandas as pd
 import numpy as np
+import torch
 from lightning import seed_everything
-from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.callbacks import Callback, ModelCheckpoint
 
 from gluonts.dataset.repository import get_dataset
 from gluonts.model.predictor import Predictor
@@ -432,3 +433,82 @@ def test_estimator_recovers_if_exception_encountered_during_training():
     forecast = list(predictor.predict(dataset.train))
     assert callback.raised
     assert isinstance(forecast[0].mean, np.ndarray)
+
+
+SMALL_DATASET = [
+    {
+        "start": pd.Period("2021-01-01 00:00:00", freq="1h"),
+        "target": np.arange(50, dtype=np.float32),
+    }
+]
+
+
+def small_estimator(**trainer_kwargs):
+    return SimpleFeedForwardEstimator(
+        prediction_length=3,
+        context_length=6,
+        hidden_dimensions=[4],
+        batch_size=4,
+        num_batches_per_epoch=2,
+        trainer_kwargs={"max_epochs": 1, **trainer_kwargs},
+    )
+
+
+def checkpoint_callbacks(trainer):
+    return [cb for cb in trainer.callbacks if isinstance(cb, ModelCheckpoint)]
+
+
+def test_estimator_trains_with_checkpointing_disabled(tmp_path):
+    estimator = small_estimator(
+        enable_checkpointing=False, default_root_dir=tmp_path
+    )
+    output = estimator.train_model(SMALL_DATASET)
+
+    assert checkpoint_callbacks(output.trainer) == []
+    assert list(tmp_path.rglob("*.ckpt")) == []
+
+    forecast = next(iter(output.predictor.predict(SMALL_DATASET)))
+    assert forecast.mean.shape == (3,)
+
+
+def test_estimator_reraises_with_checkpointing_disabled(tmp_path):
+    class RaiseOnSecondEpoch(Callback):
+        def on_train_epoch_start(self, trainer, pl_module):
+            if trainer.current_epoch == 1:
+                raise ValueError("Surprise!")
+
+    estimator = small_estimator(
+        max_epochs=2,
+        enable_checkpointing=False,
+        default_root_dir=tmp_path,
+        callbacks=[RaiseOnSecondEpoch()],
+    )
+    with pytest.raises(ValueError, match="Surprise!"):
+        estimator.train(SMALL_DATASET)
+
+
+def test_estimator_loads_best_checkpoint_by_default(tmp_path):
+    class ZeroWeightsOnTrainEnd(Callback):
+        def on_train_end(self, trainer, pl_module):
+            with torch.no_grad():
+                for param in pl_module.parameters():
+                    param.zero_()
+
+    estimator = small_estimator(
+        default_root_dir=tmp_path, callbacks=[ZeroWeightsOnTrainEnd()]
+    )
+    output = estimator.train_model(SMALL_DATASET)
+
+    (checkpoint,) = checkpoint_callbacks(output.trainer)
+    assert checkpoint.best_model_path != ""
+    best_state_dict = torch.load(
+        checkpoint.best_model_path, map_location="cpu", weights_only=True
+    )["state_dict"]
+
+    # The weights were zeroed after the last checkpoint was written, so they
+    # only match the checkpoint if it was loaded back after training.
+    state_dict = output.trained_net.state_dict()
+    assert state_dict.keys() == best_state_dict.keys()
+    for name, value in state_dict.items():
+        assert torch.equal(value, best_state_dict[name])
+    assert any(value.abs().sum() > 0 for value in state_dict.values())

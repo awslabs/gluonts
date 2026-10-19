@@ -194,15 +194,26 @@ class PyTorchLightningEstimator(Estimator):
             )
 
         monitor = "train_loss" if validation_data is None else "val_loss"
-        checkpoint = pl.callbacks.ModelCheckpoint(
-            monitor=monitor, mode="min", verbose=True, save_weights_only=True
-        )
+        # Lightning raises if a ``ModelCheckpoint`` is passed together with
+        # checkpointing disabled (``None`` counts as enabled, as in Lightning).
+        # In that case there is no checkpoint, and the last trained model is
+        # kept.
+        checkpoint = None
+        enable_checkpointing = self.trainer_kwargs.get("enable_checkpointing")
+        if enable_checkpointing is None or enable_checkpointing:
+            checkpoint = pl.callbacks.ModelCheckpoint(
+                monitor=monitor,
+                mode="min",
+                verbose=True,
+                save_weights_only=True,
+            )
 
+        default_callbacks = [] if checkpoint is None else [checkpoint]
         custom_callbacks = self.trainer_kwargs.pop("callbacks", [])
         trainer = pl.Trainer(
             **{
                 "accelerator": "auto",
-                "callbacks": [checkpoint] + custom_callbacks,
+                "callbacks": default_callbacks + custom_callbacks,
                 **self.trainer_kwargs,
             }
         )
@@ -215,7 +226,7 @@ class PyTorchLightningEstimator(Estimator):
                 ckpt_path=ckpt_path,
             )
         except Exception as e:
-            if checkpoint.best_model_path == "":
+            if checkpoint is None or checkpoint.best_model_path == "":
                 logger.error("Training failed with no checkpoint available")
                 raise
             else:
@@ -224,7 +235,7 @@ class PyTorchLightningEstimator(Estimator):
                     f"with the following exception:\n {e}"
                 )
 
-        if checkpoint.best_model_path != "":
+        if checkpoint is not None and checkpoint.best_model_path != "":
             logger.info(
                 f"Loading best model from {checkpoint.best_model_path}"
             )
