@@ -19,7 +19,7 @@ from gluonts.dataset.repository._tsf_reader import frequency_converter
 @pytest.mark.parametrize(
     "input_freq_str, output_freq_str",
     [
-        ("30_seconds", "30S"),
+        ("30_seconds", "30s"),
         ("minutely", "min"),
         ("10_minutes", "10min"),
         ("hourly", "h"),

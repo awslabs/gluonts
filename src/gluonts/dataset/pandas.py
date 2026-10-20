@@ -14,6 +14,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field, InitVar
 from typing import Any, Iterable, Optional, Type, Union
 
@@ -342,7 +343,9 @@ def infer_freq(index: pd.Index) -> str:
     if len(freq) > 1 and freq.endswith("S"):
         return freq[:-1]
 
-    return freq
+    # pandas >= 2.2 infers `end of x` frequencies such as `ME`, which are not
+    # valid period frequencies, so we use the period alias, e.g. `ME` -> `M`
+    return re.sub(r"^(\d*[MQY])E\b", r"\1", freq)
 
 
 def is_uniform(index: pd.PeriodIndex) -> bool:
@@ -351,10 +354,10 @@ def is_uniform(index: pd.PeriodIndex) -> bool:
     with frequency ``index.freq``.
 
         >>> ts = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
-        >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
+        >>> is_uniform(pd.DatetimeIndex(ts).to_period("2h"))
         True
         >>> ts = ["2021-01-01 00:00", "2021-01-01 04:00"]
-        >>> is_uniform(pd.DatetimeIndex(ts).to_period("2H"))
+        >>> is_uniform(pd.DatetimeIndex(ts).to_period("2h"))
         False
     """
 

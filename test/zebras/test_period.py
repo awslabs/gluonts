@@ -15,7 +15,7 @@ import pytest
 
 import numpy as np
 import pandas as pd
-from pandas.tseries.frequencies import to_offset
+from gluonts.time_feature import to_offset
 
 from gluonts.core import serde
 
@@ -50,14 +50,14 @@ def test_period_equal_pandas(freq):
     if freq != "S" and freq.endswith("S"):
         pytest.skip()
 
-    pd_period = pd.Period("2020", freq=freq)
+    pd_period = pd.Period("2020", freq=to_offset(freq))
     zb_period = zb.period("2020", freq)
 
     assert pd_period == zb_period.to_pandas()
     assert pd_period + 9 == (zb_period + 9).to_pandas()
 
     freq = "7" + freq
-    pd_period = pd.Period("2020", freq=freq)
+    pd_period = pd.Period("2020", freq=to_offset(freq))
     zb_period = zb.period("2020", freq)
 
     assert pd_period == zb_period.to_pandas()
@@ -76,13 +76,13 @@ def test_periods_equal_pandas(freq):
     if freq != "S" and freq.endswith("S"):
         pytest.skip()
 
-    pr = pd.period_range(start="2020", freq=freq, periods=20)
+    pr = pd.period_range(start="2020", freq=to_offset(freq), periods=20)
     ps = zb.periods("2020", freq, 20)
 
     np.testing.assert_array_equal(pr, ps.to_pandas())
 
     freq = "7" + freq
-    pr = pd.period_range(start="2020", freq=freq, periods=20)
+    pr = pd.period_range(start="2020", freq=to_offset(freq), periods=20)
     ps = zb.periods("2020", freq, 20)
 
     np.testing.assert_array_equal(pr, ps.to_pandas())
@@ -101,7 +101,7 @@ def test_periods_feature(freq):
     if freq != "S" and freq.endswith("S"):
         pytest.skip()
 
-    pr = pd.period_range(start="2020", freq=freq, periods=20)
+    pr = pd.period_range(start="2020", freq=to_offset(freq), periods=20)
     ps = zb.periods("2020", freq, 20)
 
     np.testing.assert_array_equal(pr.start_time.year, ps.year)

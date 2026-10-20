@@ -44,7 +44,7 @@ from gluonts.time_feature import (
         (
             second_of_minute,
             pd.period_range(
-                "01-01-2015 00:00:00", periods=60 * 2 * 24, freq="5S"
+                "01-01-2015 00:00:00", periods=60 * 2 * 24, freq="5s"
             ),
         ),
         (
@@ -77,7 +77,7 @@ from gluonts.time_feature import (
             month_of_year,
             pd.period_range("01-01-2015", periods=12 * 5, freq="M"),
         ),
-        (Constant(), pd.period_range("01-01-2015", periods=5, freq="A")),
+        (Constant(), pd.period_range("01-01-2015", periods=5, freq="Y")),
     ],
 )
 def test_feature_normalized_bounds(
@@ -100,7 +100,7 @@ def test_feature_normalized_bounds(
         (
             second_of_minute_index,
             pd.period_range(
-                "01-01-2015 00:00:00", periods=60 * 2 * 24, freq="1S"
+                "01-01-2015 00:00:00", periods=60 * 2 * 24, freq="1s"
             ),
             60,
         ),

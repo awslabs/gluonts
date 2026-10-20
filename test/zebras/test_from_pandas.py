@@ -15,7 +15,7 @@ import pytest
 
 import numpy as np
 import pandas as pd
-from pandas.tseries.frequencies import to_offset
+from gluonts.time_feature import to_offset
 
 import gluonts.zebras as zb
 
@@ -34,14 +34,14 @@ def test_pandas_freq(from_pandas, n, freq):
 def test_pandas_dataframe(from_pandas):
     df = pd.DataFrame(
         {"x": [1, 2, 3]},
-        index=pd.date_range(start="2020", periods=3, freq="H"),
+        index=pd.date_range(start="2020", periods=3, freq="h"),
     )
 
     tf = zb.TimeFrame.from_pandas(df)
     assert np.array_equal(tf.index.data.astype(int), df.index.to_period().asi8)
     assert np.array_equal(tf["x"], df["x"])
 
-    df = df.reindex(pd.period_range(start="2020", periods=3, freq="H"))
+    df = df.reindex(pd.period_range(start="2020", periods=3, freq="h"))
     tf = zb.TimeFrame.from_pandas(df)
     assert np.array_equal(tf.index.data.astype(int), df.index.asi8)
 

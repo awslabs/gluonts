@@ -160,7 +160,7 @@ def test_special_date_feature_set_daily(
 
 def test_special_date_feature_set_hourly():
     date_indices = pd.date_range(
-        start="2016-12-24", end="2016-12-25", freq="H"
+        start="2016-12-24", end="2016-12-25", freq="h"
     )
 
     reference_features = np.array(

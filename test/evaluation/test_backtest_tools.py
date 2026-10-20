@@ -19,7 +19,7 @@ from gluonts.evaluation.backtest import make_evaluation_predictions
 from gluonts.model.trivial.identity import IdentityPredictor
 
 
-@pytest.mark.parametrize("freq", ["23min", "H", "17H", "9D", "3W", "5M"])
+@pytest.mark.parametrize("freq", ["23min", "h", "17h", "9D", "3W", "5M"])
 def test_make_evaluation_predictions_zero(freq):
     prediction_length = 5
     ts_length = 50

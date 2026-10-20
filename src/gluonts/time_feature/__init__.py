@@ -32,6 +32,7 @@ from ._base import (
     week_of_year_index,
     norm_freq_str,
     time_features_from_frequency_str,
+    to_offset,
 )
 from .holiday import SPECIAL_DATE_FEATURES, SpecialDateFeatureSet
 from .lag import get_lags_for_frequency
@@ -59,6 +60,7 @@ __all__ = [
     "SPECIAL_DATE_FEATURES",
     "SpecialDateFeatureSet",
     "time_features_from_frequency_str",
+    "to_offset",
     "TimeFeature",
     "week_of_year",
     "week_of_year_index",

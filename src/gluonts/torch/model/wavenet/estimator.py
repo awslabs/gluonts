@@ -231,12 +231,16 @@ class WaveNetEstimator(PyTorchLightningEstimator):
                 freq,
                 {
                     "H": 7 * 24,
+                    "h": 7 * 24,
                     "D": 7,
                     "W": 52,
                     "M": 12,
+                    "ME": 12,
                     "B": 7 * 5,
                     "T": 24 * 60,
+                    "min": 24 * 60,
                     "S": 60 * 60,
+                    "s": 60 * 60,
                 },
             ),
         )

@@ -22,7 +22,7 @@ from gluonts.ext.prophet import ProphetPredictor
 @pytest.mark.parametrize(
     "freq",
     [
-        "1H",
+        "1h",
         "2D",
         "3W",
         "4M",

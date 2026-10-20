@@ -40,7 +40,7 @@ models are offered as estimators, which need to be trained first:
 
 ```py
 # global DeepAR model
-estimator = DeepAREstimator(prediction_length=24, freq="H")
+estimator = DeepAREstimator(prediction_length=24, freq="h")
 predictor = estimator.train(train_data)
 
 # local Prophet model

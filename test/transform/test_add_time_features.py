@@ -72,7 +72,7 @@ def compute_time_features(
             "3W-FRI",
             "3W-SAT",
             "2D",
-            "5H",
+            "5h",
         ]
     ],
 )

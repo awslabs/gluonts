@@ -1090,7 +1090,7 @@ def test_aggregate_valid():
         pd.Series(
             np.random.normal(24 + 6),
             index=pd.date_range(
-                start="2022-12-31 00", periods=24 + 6, freq="H"
+                start="2022-12-31 00", periods=24 + 6, freq="h"
             ),
         ).to_period()
         for _ in range(num_series)
@@ -1098,7 +1098,7 @@ def test_aggregate_valid():
     forecasts = [
         SampleForecast(
             samples=np.random.normal(size=(10, 6)),
-            start_date=pd.Period("2023-01-01 00", freq="H"),
+            start_date=pd.Period("2023-01-01 00", freq="h"),
             item_id=str(item_id),
         )
         for item_id in range(num_series)

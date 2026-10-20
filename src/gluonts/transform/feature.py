@@ -19,7 +19,7 @@ import pandas as pd
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry
 from gluonts.dataset.field_names import FieldName
-from gluonts.time_feature import TimeFeature
+from gluonts.time_feature import TimeFeature, to_offset
 
 from ._base import MapTransformation, SimpleTransformation
 
@@ -500,7 +500,7 @@ class AddAggregateLags(MapTransformation):
             )
 
     def map_transform(self, data: DataEntry, is_train: bool) -> DataEntry:
-        assert self.base_freq == data["start"].freq
+        assert to_offset(self.base_freq) == data["start"].freq
 
         # convert to pandas Series for easier indexing and aggregation
         if is_train:

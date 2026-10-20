@@ -17,12 +17,11 @@ from typing import Dict, List, NamedTuple, Optional
 from urllib import request
 from zipfile import ZipFile
 
-from pandas.tseries.frequencies import to_offset
-
 from gluonts.dataset import DatasetWriter
 from gluonts.dataset.common import MetaData, TrainDatasets
 from gluonts.dataset.field_names import FieldName
 from gluonts.gluonts_tqdm import tqdm
+from gluonts.time_feature import to_offset
 
 from ._tsf_reader import TSFReader, frequency_converter
 from ._util import metadata, request_retrieve_hook

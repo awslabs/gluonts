@@ -62,7 +62,7 @@ NUM_TS = 10
     ],
 )
 @pytest.mark.parametrize(
-    "freq", ["1min", "15min", "30min", "1H", "2H", "12H", "7D", "1W", "1M"]
+    "freq", ["1min", "15min", "30min", "1h", "2h", "12h", "7D", "1W", "1M"]
 )
 def test_predictor(make_predictor, freq: str):
     predictor = make_predictor(freq)

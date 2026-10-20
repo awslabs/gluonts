@@ -30,7 +30,7 @@ For our examples, we will use data from the following `csv` file, which is origi
 
 ```python
 url = "https://raw.githubusercontent.com/numenta/NAB/master/data/realTweets/Twitter_volume_AMZN.csv"
-df = pd.read_csv(url, header=0, index_col="timestamp", parse_dates=True).resample("1H").sum()
+df = pd.read_csv(url, header=0, index_col="timestamp", parse_dates=True).resample("1h").sum()
 ```
 
 This is what the data looks like:
@@ -84,7 +84,7 @@ For the first example, we will take training data up to specific date, and then 
 
 ```python
 prediction_length = 3 * 24
-training_dataset, test_template = split(dataset, date=pd.Period("2015-04-07 00:00:00", freq='1H'))
+training_dataset, test_template = split(dataset, date=pd.Period("2015-04-07 00:00:00", freq='1h'))
 test_pairs = test_template.generate_instances(
                 prediction_length=prediction_length,
                 windows=3,
@@ -97,8 +97,8 @@ However, we don't necessarily need to align the date where training data ends wi
 
 
 ```python
-training_dataset, _ = split(dataset, date=pd.Period("2015-03-28 00:00:00", freq='1H'))
-_, test_template = split(dataset, date=pd.Period("2015-04-07 00:00:00", freq='1H'))
+training_dataset, _ = split(dataset, date=pd.Period("2015-03-28 00:00:00", freq='1h'))
+_, test_template = split(dataset, date=pd.Period("2015-04-07 00:00:00", freq='1h'))
 test_pairs = test_template.generate_instances(
                 prediction_length=prediction_length,
                 windows=3,
@@ -111,7 +111,7 @@ Also, we don't necessarily need to align all the test instances time by time. So
 
 
 ```python
-training_dataset, test_template = split(dataset, date=pd.Period("2015-04-07 00:00:00", freq='1H'))
+training_dataset, test_template = split(dataset, date=pd.Period("2015-04-07 00:00:00", freq='1h'))
 test_pairs = test_template.generate_instances(
                 prediction_length=prediction_length,
                 windows=3,

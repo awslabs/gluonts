@@ -78,13 +78,13 @@ def test_forecast(name):
 def test_mean_only_forecast():
     forecast = QuantileForecast(
         forecast_arrays=np.ones(shape=(1, 12)),
-        start_date=pd.Period("2022-03-04 00", freq="H"),
+        start_date=pd.Period("2022-03-04 00", freq="h"),
         forecast_keys=["mean"],
     )
 
     assert forecast.prediction_length == 12
     assert len(forecast.index) == 12
-    assert forecast.index[0] == pd.Period("2022-03-04 00", freq="H")
+    assert forecast.index[0] == pd.Period("2022-03-04 00", freq="h")
 
     for level in [0.1, 0.5, 0.7]:
         assert np.isnan(forecast.quantile(level)).all()

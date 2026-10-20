@@ -27,7 +27,6 @@ from typing import (
 
 import numpy as np
 import pandas as pd
-from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import BaseOffset, Week
 
 from gluonts.dataset.artificial.recipe import (
@@ -57,6 +56,7 @@ from gluonts.dataset.stat import (
     DatasetStatistics,
     calculate_dataset_statistics,
 )
+from gluonts.time_feature import to_offset
 
 
 class DatasetInfo(NamedTuple):
@@ -459,7 +459,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             return 52
         elif self.freq_str == "D":
             return 14
-        elif self.freq_str == "H":
+        elif self.freq_str in ["H", "h"]:
             return 24
         elif self.freq_str == "min":
             return 60
@@ -501,7 +501,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             return "%04.d-%02.d" % (start_y, start_m)
         elif self.freq_str in ["W", "D"]:
             return "%04.d-%02.d-%02.d" % (start_y, start_m, start_d)
-        elif self.freq_str == "H":
+        elif self.freq_str in ["H", "h"]:
             return "%04.d-%02.d-%02.d %02.d:00:00" % (
                 start_y,
                 start_m,
@@ -524,7 +524,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             return index.month % 2 == 0
         elif self.freq_str == "D":
             return index.dayofweek == 0
-        elif self.freq_str == "H":
+        elif self.freq_str in ["H", "h"]:
             return index.hour == 0
         elif self.freq_str == "min":
             return index.minute % 30 == 0
@@ -567,9 +567,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
             period = self._get_period()
             w = 2 * np.pi / period
             t = np.arange(length)
-            idx = pd.period_range(
-                start=start, freq=self.freq_str, periods=length
-            )
+            idx = pd.period_range(start=start, freq=self.freq, periods=length)
             special_tp_indicator = self._special_time_point_indicator(idx)
             sunday_effect = state.random_sample() * special_tp_indicator
             v = np.sin(w * t + phi) + sunday_effect
@@ -638,7 +636,7 @@ class ComplexSeasonalTimeSeries(ArtificialDataset):
                         v[j] = None if state.rand() < 0.5 else "NaN"
             res.append(
                 dict(
-                    start=pd.Period(start, freq=self.freq_str),
+                    start=pd.Period(start, freq=self.freq),
                     target=np.array(v),
                     item_id=i,
                 )
@@ -836,7 +834,7 @@ def default_synthetic() -> Tuple[DatasetInfo, Dataset, Dataset]:
 
 def constant_dataset() -> Tuple[DatasetInfo, Dataset, Dataset]:
     metadata = MetaData(
-        freq="1H",
+        freq="1h",
         feat_static_cat=[
             CategoricalFeatureInfo(
                 name="feat_static_cat_000", cardinality="10"

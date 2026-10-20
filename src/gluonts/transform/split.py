@@ -14,6 +14,7 @@
 from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
+import pandas as pd
 from pandas.tseries.offsets import BaseOffset
 
 from gluonts.core.component import validated
@@ -403,9 +404,13 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
     def flatmap_transform(
         self, data: DataEntry, is_train: bool
     ) -> Iterator[DataEntry]:
+        # In pandas >= 3 ``Day`` is no longer a ``Tick``, so we can't
+        # use ``pd.Timedelta(self.freq)`` or divide a ``Timedelta`` by it.
+        freq_delta = pd.Timestamp(0) + self.freq - pd.Timestamp(0)
+
         total_interval_length = (
             data[self.end_field] - data[self.start_field]
-        ) / self.freq
+        ) / freq_delta
 
         sampling_times = self.instance_sampler(total_interval_length)
 
@@ -450,7 +455,7 @@ class ContinuousTimeInstanceSplitter(FlatMapTransformation):
             print(self.freq)
 
             r[self.forecast_start_field] = (
-                data[self.start_field] + self.freq.delta * future_start
+                data[self.start_field] + freq_delta * future_start
             )
 
             if is_train:  # include the future only if is_train
