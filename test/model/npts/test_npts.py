@@ -21,12 +21,15 @@ from gluonts.dataset.common import DataEntry, Dataset
 from gluonts.exceptions import GluonTSDataError
 from gluonts.model.npts import KernelType, NPTSPredictor
 from gluonts.model.npts._weighted_sampler import WeightedSampler
+from gluonts.time_feature import to_offset
 
 
 def get_test_data(
     history_length: int, freq: str, dtype=np.float32
 ) -> pd.Series:
-    index = pd.date_range("1/1/2011", periods=history_length, freq=freq)
+    index = pd.date_range(
+        "1/1/2011", periods=history_length, freq=to_offset(freq)
+    )
     return pd.Series(np.arange(len(index), dtype=dtype), index=index)
 
 
@@ -35,8 +38,8 @@ def get_test_data(
     [
         ("min", 480, 60),
         ("15min", 96, 4),
-        ("H", 336, 24),
-        ("4H", 336, 6),
+        ("h", 336, 24),
+        ("4h", 336, 6),
         ("D", 56, 7),
         ("M", 96, 12),
         ("3M", 32, 4),
@@ -180,8 +183,8 @@ def test_climatological_forecaster(
     [
         ("min", 360, 60),
         ("15min", 96, 4),
-        ("H", 336, 24),
-        ("4H", 336, 6),
+        ("h", 336, 24),
+        ("4h", 336, 6),
         ("D", 56, 7),
         ("M", 96, 12),
         ("3M", 32, 4),

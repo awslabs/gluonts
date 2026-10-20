@@ -11,13 +11,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+import re
 from packaging.version import Version
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Union
 
 import numpy as np
 import pandas as pd
 from pandas.tseries import offsets
-from pandas.tseries.frequencies import to_offset
+from pandas.tseries.frequencies import to_offset as pd_to_offset
 
 from gluonts.pydantic import BaseModel
 
@@ -203,6 +204,61 @@ def norm_freq_str(freq_str: str) -> str:
             base_freq += "E"
 
     return base_freq
+
+
+# Aliases deprecated in pandas 2.2 and removed in pandas 3.0, mapped to their
+# replacements. They still appear in user code, dataset metadata and
+# serialized models, so we keep accepting them.
+_LEGACY_FREQ_ALIASES = {
+    "H": "h",
+    "T": "min",
+    "S": "s",
+    "L": "ms",
+    "U": "us",
+    "N": "ns",
+    "A": "Y",
+    "AS": "YS",
+}
+
+
+def _replace_legacy_freq_alias(freq_str: str) -> str:
+    match = re.fullmatch(r"(\d*)\s*([A-Za-z]+)(-\w+)?", freq_str.strip())
+    if match is None:
+        return freq_str
+
+    n, name, suffix = match.groups()
+    return n + _LEGACY_FREQ_ALIASES.get(name, name) + (suffix or "")
+
+
+def to_offset(freq: Union[str, offsets.BaseOffset]) -> offsets.BaseOffset:
+    """
+    Like ``pandas.tseries.frequencies.to_offset``, but also accepts frequency
+    strings that pandas 3 no longer accepts for offsets: period aliases, such
+    as "M", "Q" and "Y", and legacy aliases, such as "H", "T" and "S".
+
+    >>> to_offset("M")
+    <MonthEnd>
+    >>> to_offset("2H")
+    <2 * Hours>
+    """
+    try:
+        return pd_to_offset(freq)
+    except ValueError as error:
+        if not isinstance(freq, str):
+            raise
+        pd_error = error
+
+    freq = _replace_legacy_freq_alias(freq)
+    try:
+        return pd_to_offset(freq)
+    except ValueError:
+        pass
+
+    try:
+        # ``is_period`` is only available in pandas >= 2.2.
+        return pd_to_offset(freq, is_period=True)
+    except (ValueError, TypeError):
+        raise pd_error from None
 
 
 def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:

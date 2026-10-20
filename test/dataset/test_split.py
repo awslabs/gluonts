@@ -69,28 +69,28 @@ def test_time_series_slice():
             3,
         ),
         (
-            pd.Period("2021-03-03 23:00", freq="30T"),
-            pd.Period("2021-03-04 03:29", freq="30T"),
+            pd.Period("2021-03-03 23:00", freq="30min"),
+            pd.Period("2021-03-04 03:29", freq="30min"),
             9,
         ),
         (
-            pd.Period("2015-04-07 00:00", freq="30T"),
-            pd.Period("2015-04-07 09:31", "30T"),
+            pd.Period("2015-04-07 00:00", freq="30min"),
+            pd.Period("2015-04-07 09:31", "30min"),
             20,
         ),
         (
-            pd.Period("2015-04-07 00:00", freq="30T"),
-            pd.Period("2015-04-08 16:10", freq="30T"),
+            pd.Period("2015-04-07 00:00", freq="30min"),
+            pd.Period("2015-04-08 16:10", freq="30min"),
             81,
         ),
         (
-            pd.Period("2021-01-01 00", freq="2H"),
-            pd.Period("2021-01-01 08", "2H"),
+            pd.Period("2021-01-01 00", freq="2h"),
+            pd.Period("2021-01-01 08", "2h"),
             5,
         ),
         (
-            pd.Period("2021-01-01 00", freq="2H"),
-            pd.Period("2021-01-01 11", "2H"),
+            pd.Period("2021-01-01 00", freq="2h"),
+            pd.Period("2021-01-01 11", "2h"),
             6,
         ),
         (
@@ -104,8 +104,8 @@ def test_time_series_slice():
             1,
         ),
         (
-            pd.Period("2021-03-03 23:00", freq="30T"),
-            pd.Period("2021-03-03 03:29", freq="30T"),
+            pd.Period("2021-03-03 23:00", freq="30min"),
+            pd.Period("2021-03-03 03:29", freq="30min"),
             0,
         ),
     ],
@@ -291,21 +291,21 @@ def test_split(dataset, date, offset, windows, distance, max_history):
     [
         (
             {
-                "start": pd.Period("2015-04-07 00:00:00", freq="30T"),
+                "start": pd.Period("2015-04-07 00:00:00", freq="30min"),
                 "target": np.random.randn(100),
             },
             20,
             6,
-            pd.Period("2015-04-07 10:00:00", freq="30T"),
+            pd.Period("2015-04-07 10:00:00", freq="30min"),
         ),
         (
             {
-                "start": pd.Period("2015-04-07 00:00:00", freq="30T"),
+                "start": pd.Period("2015-04-07 00:00:00", freq="30min"),
                 "target": np.random.randn(100),
             },
             -20,
             6,
-            pd.Period("2015-04-08 16:00:00", freq="30T"),
+            pd.Period("2015-04-08 16:00:00", freq="30min"),
         ),
     ],
 )
@@ -346,25 +346,25 @@ def test_split_offset(
     [
         (
             {
-                "start": pd.Period("2015-04-07 00:00:00", freq="30T"),
+                "start": pd.Period("2015-04-07 00:00:00", freq="30min"),
                 "target": np.random.randn(100),
             },
-            pd.Period("2015-04-07 09:30", "30T"),
+            pd.Period("2015-04-07 09:30", "30min"),
             6,
             (20,),
         ),
         (
             {
-                "start": pd.Period("2015-04-07 00:00:00", freq="30T"),
+                "start": pd.Period("2015-04-07 00:00:00", freq="30min"),
                 "target": np.random.randn(100),
             },
-            pd.Period("2015-04-08 16:00:00", freq="30T"),
+            pd.Period("2015-04-08 16:00:00", freq="30min"),
             6,
             (81,),
         ),
         (
             {
-                "start": pd.Period("2021-01-01 00", freq="2H"),
+                "start": pd.Period("2021-01-01 00", freq="2h"),
                 "target": np.arange(10),
             },
             pd.Period("2021-01-01 08", "2h"),
@@ -373,7 +373,7 @@ def test_split_offset(
         ),
         (
             {
-                "start": pd.Period("2021-01-01 00", freq="2H"),
+                "start": pd.Period("2021-01-01 00", freq="2h"),
                 "target": np.arange(10),
             },
             pd.Period("2021-01-01 11", "2h"),

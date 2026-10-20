@@ -50,7 +50,7 @@ def long_dataframe():
     N, T = 2, 10
     df = pd.DataFrame(index=np.arange(N * T))
     df["time"] = (
-        2 * pd.date_range("2021-01-01 00:00", freq="1H", periods=T).to_list()
+        2 * pd.date_range("2021-01-01 00:00", freq="1h", periods=T).to_list()
     )
     df["target"] = np.random.normal(size=(N * T,))
     df["item"] = T * ["A"] + T * ["B"]
@@ -66,7 +66,7 @@ def long_dataset(long_dataframe):  # initialized with dict
         target="target",
         timestamp="time",
         item_id="item",
-        freq="1H",
+        freq="1h",
         feat_dynamic_real=["dyn_real_1"],
     )
 
@@ -93,7 +93,7 @@ def test_LongDataFrameDataset_len(long_dataset):
 
 def test_is_uniform_2H():
     timestamps = ["2021-01-01 00:00", "2021-01-01 02:00", "2021-01-01 04:00"]
-    assert pandas.is_uniform(pd.DatetimeIndex(timestamps).to_period("2H"))
+    assert pandas.is_uniform(pd.DatetimeIndex(timestamps).to_period("2h"))
 
 
 @pytest.mark.parametrize(
@@ -105,7 +105,7 @@ def test_is_uniform_2H():
     ],
 )
 def test_is_uniform_2H_fail(timestamps):
-    assert not pandas.is_uniform(pd.DatetimeIndex(timestamps).to_period("2H"))
+    assert not pandas.is_uniform(pd.DatetimeIndex(timestamps).to_period("2h"))
 
 
 def test_infer_period(my_dataframe):
@@ -119,6 +119,27 @@ def test_infer_period2(my_dataframe):
     ds = pandas.PandasDataset(dfs, target="target", freq="1D")
     for entry in ds:
         assert entry["start"] == pd.Period("2021-01-01", freq="1D")
+
+
+@pytest.mark.parametrize(
+    "offset, period_freq",
+    [
+        (pd.offsets.Hour(), "h"),
+        (pd.offsets.Day(), "D"),
+        (pd.offsets.MonthBegin(), "M"),
+        (pd.offsets.MonthEnd(), "M"),
+        (pd.offsets.QuarterEnd(), "Q"),
+        (pd.offsets.YearEnd(), "Y"),
+    ],
+)
+def test_infer_freq(offset, period_freq):
+    index = pd.date_range("2021-01-01", periods=6, freq=offset)
+    series = pd.Series(np.arange(len(index)), index=index)
+
+    ds = pandas.PandasDataset(series)
+
+    for entry in ds:
+        assert entry["start"] == pd.Period(index[0], freq=period_freq)
 
 
 def test_long_csv_3M():
@@ -363,14 +384,14 @@ def _testcase_dataframes_with_index(
     "dataset, expected_entries",
     [
         _testcase_series(freq="D", index_type=pd.period_range),
-        _testcase_series(freq="H", index_type=pd.date_range),
+        _testcase_series(freq="h", index_type=pd.date_range),
         _testcase_dataframes_without_index(
             freq="D",
             target="A",
             feat_dynamic_real=["B", "C"],
         ),
         _testcase_dataframes_without_index(
-            freq="H",
+            freq="h",
             target=["A", "B"],
             feat_dynamic_real=["C"],
         ),
@@ -381,7 +402,7 @@ def _testcase_dataframes_with_index(
             feat_dynamic_real=["B", "C"],
         ),
         _testcase_dataframes_with_index(
-            freq="H",
+            freq="h",
             index_type=pd.date_range,
             target=["A", "B"],
             feat_dynamic_real=["C"],

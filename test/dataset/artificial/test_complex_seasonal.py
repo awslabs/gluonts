@@ -26,7 +26,7 @@ _min_val = np.array([-10000, 0, 5000])
 
 @pytest.mark.parametrize("num_series", [30])
 @pytest.mark.parametrize("prediction_length", [100])
-@pytest.mark.parametrize("freq_str", ["M", "W", "D", "H", "min"])
+@pytest.mark.parametrize("freq_str", ["M", "W", "D", "h", "min"])
 @pytest.mark.parametrize(
     "length_low, length_high", zip(_length_low, _length_low + np.array([50]))
 )

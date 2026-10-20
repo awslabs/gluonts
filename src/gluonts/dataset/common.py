@@ -20,7 +20,6 @@ from typing import Callable, List, NamedTuple, Optional, Union, cast
 
 import numpy as np
 import pandas as pd
-from pandas.tseries.frequencies import to_offset
 
 from gluonts import json
 from gluonts.itertools import Cached, Map
@@ -28,6 +27,7 @@ from gluonts.dataset.field_names import FieldName
 from gluonts.dataset.schema import Translator
 from gluonts.exceptions import GluonTSDataError
 from gluonts.pydantic import pydantic
+from gluonts.time_feature import to_offset
 
 
 from . import Dataset, DatasetCollection, DataEntry, DataBatch  # noqa
@@ -210,7 +210,9 @@ def _FileDataset(
     translate: Optional[dict] = None,
 ) -> Dataset:
     process = ProcessDataEntry(
-        freq, one_dim_target=one_dim_target, use_timestamp=use_timestamp
+        to_offset(freq),
+        one_dim_target=one_dim_target,
+        use_timestamp=use_timestamp,
     )
 
     if translate is not None:

@@ -126,7 +126,7 @@ def test_model_config(
     [
         [
             dict(
-                start=pd.Period("2021-02-03 00", freq="H"),
+                start=pd.Period("2021-02-03 00", freq="h"),
                 target=np.random.normal(loc=10, scale=0.5, size=(100,)),
             )
         ]

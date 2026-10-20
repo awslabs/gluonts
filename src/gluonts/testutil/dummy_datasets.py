@@ -100,7 +100,7 @@ def get_dataset():
                 "end": pd.Timestamp("2011-01-01 03:00:00"),
             },
         ],
-        freq="H",
+        freq="h",
         one_dim_target=False,
         use_timestamp=True,
     )

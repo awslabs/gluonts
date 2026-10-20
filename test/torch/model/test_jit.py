@@ -33,7 +33,7 @@ def all_equal(obj1, obj2):
     "model",
     [
         DeepARModel(
-            freq="1H",
+            freq="1h",
             context_length=10,
             prediction_length=3,
             num_feat_dynamic_real=1,

@@ -43,7 +43,7 @@ def test_mqf2_modules(
 
     lightning_module = MQF2MultiHorizonLightningModule(
         {
-            "freq": "1H",
+            "freq": "1h",
             "context_length": context_length,
             "prediction_length": prediction_length,
             "num_feat_dynamic_real": num_feat_dynamic_real,

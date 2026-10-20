@@ -41,7 +41,7 @@ def test_deepar_modules(
 
     lightning_module = DeepARLightningModule(
         model_kwargs={
-            "freq": "1H",
+            "freq": "1h",
             "context_length": context_length,
             "prediction_length": prediction_length,
             "num_feat_dynamic_real": num_feat_dynamic_real,

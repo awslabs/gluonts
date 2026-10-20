@@ -26,7 +26,7 @@ def test_parallelized_predictor():
             {"start": "2012-01-01", "target": (np.zeros(20) + i).tolist()}
             for i in range(300)
         ],
-        freq="1H",
+        freq="1h",
     )
 
     base_predictor = IdentityPredictor(prediction_length=10, num_samples=100)
@@ -55,7 +55,7 @@ def test_localizer():
             }
             for i in range(3)
         ],
-        freq="1H",
+        freq="1h",
     )
 
     estimator = MeanEstimator(prediction_length=10, num_samples=50)

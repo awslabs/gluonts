@@ -91,13 +91,13 @@ def periods_between(
 
     For example:
 
-        >>> start = pd.Period("2021-01-01 00", freq="2H")
-        >>> end = pd.Period("2021-01-01 11", "2H")
+        >>> start = pd.Period("2021-01-01 00", freq="2h")
+        >>> end = pd.Period("2021-01-01 11", "2h")
         >>> periods_between(start, end)
         6
 
-        >>> start = pd.Period("2021-03-03 23:00", freq="30T")
-        >>> end = pd.Period("2021-03-04 03:29", freq="30T")
+        >>> start = pd.Period("2021-03-03 23:00", freq="30min")
+        >>> end = pd.Period("2021-03-04 03:29", freq="30min")
         >>> periods_between(start, end)
         9
     """

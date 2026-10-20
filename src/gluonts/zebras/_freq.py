@@ -169,7 +169,7 @@ class Freq:
         return cls(groups["freq"], n, suffix)
 
     def to_pandas(self):
-        from pandas.tseries.frequencies import to_offset
+        from gluonts.time_feature import to_offset
 
         return to_offset(str(self))
 

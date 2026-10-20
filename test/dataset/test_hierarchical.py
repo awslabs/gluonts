@@ -21,7 +21,7 @@ from gluonts.dataset.hierarchical import HierarchicalTimeSeries
 
 
 PERIODS = 24
-FREQ = "H"
+FREQ = "h"
 
 
 def random_ts(num_ts: int, periods: int, freq: str):

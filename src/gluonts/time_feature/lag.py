@@ -14,9 +14,8 @@
 from typing import List, Optional
 
 import numpy as np
-from pandas.tseries.frequencies import to_offset
 
-from gluonts.time_feature import norm_freq_str
+from gluonts.time_feature import norm_freq_str, to_offset
 
 
 def _make_lags(middle: int, delta: int) -> List[int]:

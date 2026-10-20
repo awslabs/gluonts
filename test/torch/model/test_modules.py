@@ -34,7 +34,7 @@ def assert_shapes_and_dtypes(tensors, shapes, dtypes):
     [
         (
             DeepARModel(
-                freq="1H",
+                freq="1h",
                 context_length=24,
                 prediction_length=12,
                 num_feat_dynamic_real=1,
@@ -89,7 +89,7 @@ def test_module_smoke(module, batch_size, expected_shapes, expected_dtypes):
         from gluonts.torch.model.mqf2 import MQF2MultiHorizonModel
 
         module = MQF2MultiHorizonModel(
-            freq="1H",
+            freq="1h",
             context_length=24,
             prediction_length=12,
             num_feat_dynamic_real=1,

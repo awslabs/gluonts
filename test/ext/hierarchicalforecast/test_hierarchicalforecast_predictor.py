@@ -16,6 +16,8 @@ from tempfile import TemporaryDirectory
 import itertools
 import pytest
 
+import pandas as pd
+from packaging.version import Version
 from statsforecast.models import AutoARIMA, AutoETS
 from hierarchicalforecast.methods import (
     BottomUp,
@@ -138,6 +140,10 @@ def test_predictor_serialization(
     assert predictor_copy == predictor
 
 
+@pytest.mark.skipif(
+    Version(pd.__version__) >= Version("3"),
+    reason="hierarchicalforecast < 1.0 is not compatible with pandas >= 3",
+)
 @pytest.mark.parametrize(
     "base_model, reconciler, model_params, reconciler_params",
     test_input,

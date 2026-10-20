@@ -63,7 +63,7 @@ def test_align_timestamp():
         assert aligned_with("2012-03-05 09:13:12", "2min") == pd.Timestamp(
             "2012-03-05 09:13:00"
         )
-        assert aligned_with("2012-03-05 09:13:12", "H") == pd.Timestamp(
+        assert aligned_with("2012-03-05 09:13:12", "h") == pd.Timestamp(
             "2012-03-05 09:00:00"
         )
         assert aligned_with("2012-03-05 09:13:12", "D") == pd.Timestamp(
@@ -90,7 +90,7 @@ def test_align_timestamp():
         assert aligned_with("2012-03-05 09:14:11", "2min") == pd.Timestamp(
             "2012-03-05 09:14:00"
         )
-        assert aligned_with("2012-03-05 09:14:11", "H") == pd.Timestamp(
+        assert aligned_with("2012-03-05 09:14:11", "h") == pd.Timestamp(
             "2012-03-05 09:00:00"
         )
         assert aligned_with("2012-03-05 09:14:11", "D") == pd.Timestamp(
@@ -748,7 +748,7 @@ def point_process_dataset():
                 "end": pd.Timestamp("2011-01-01 03:00:00"),
             }
         ],
-        freq="H",
+        freq="h",
         one_dim_target=False,
         use_timestamp=True,
     )
@@ -777,7 +777,7 @@ def test_ctsplitter_mask_sorted(point_process_dataset):
             min_past=2,
             min_future=1,
         ),
-        freq=to_offset("H"),
+        freq=to_offset("h"),
     )
 
     # no boundary conditions
@@ -797,7 +797,7 @@ def test_ctsplitter_no_train_last_point(point_process_dataset):
             allow_empty_interval=False,
             min_past=2,
         ),
-        freq=to_offset("H"),
+        freq=to_offset("h"),
     )
 
     iter_de = splitter(point_process_dataset, is_train=False)
@@ -822,7 +822,7 @@ def test_ctsplitter_train_correct(point_process_dataset):
         instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99]
         ),
-        freq=to_offset("H"),
+        freq=to_offset("h"),
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)
@@ -846,6 +846,36 @@ def test_ctsplitter_train_correct(point_process_dataset):
     assert outputs[2]["future_valid_length"] == 3
 
 
+@pytest.mark.parametrize(
+    "freq, interval",
+    [("h", pd.Timedelta(hours=1)), ("D", pd.Timedelta(days=1))],
+)
+def test_ctsplitter_forecast_start(freq, interval):
+    start = pd.Timestamp("2011-01-01 00:00:00")
+    dataset = ListDataset(
+        [
+            {
+                "target": np.c_[[0.2, 0.7, 0.2, 0.5], [0, 1, 2, 0]].T,
+                "start": start,
+                "end": start + 3 * interval,
+            }
+        ],
+        freq=freq,
+        one_dim_target=False,
+        use_timestamp=True,
+    )
+    splitter = transform.ContinuousTimeInstanceSplitter(
+        past_interval_length=1,
+        future_interval_length=1,
+        instance_sampler=MockContinuousTimeSampler(ret_values=[1.5]),
+        freq=to_offset(freq),
+    )
+
+    (output,) = splitter(dataset, is_train=True)
+
+    assert output["forecast_start"] == start + 1.5 * interval
+
+
 def test_ctsplitter_train_correct_out_count(point_process_dataset):
     # produce new TPP data by shuffling existing TS instance
     def shuffle_iterator(num_duplications=5):
@@ -861,7 +891,7 @@ def test_ctsplitter_train_correct_out_count(point_process_dataset):
         instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99]
         ),
-        freq=to_offset("H"),
+        freq=to_offset("h"),
     )
 
     iter_de = splitter(shuffle_iterator(), is_train=True)
@@ -880,7 +910,7 @@ def test_ctsplitter_train_samples_correct_times(point_process_dataset):
             min_past=1.25,
             min_future=1.25,
         ),
-        freq=to_offset("H"),
+        freq=to_offset("h"),
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)
@@ -904,7 +934,7 @@ def test_ctsplitter_train_short_intervals(point_process_dataset):
         instance_sampler=MockContinuousTimeSampler(
             ret_values=[1.01, 1.5, 1.99]
         ),
-        freq=to_offset("H"),
+        freq=to_offset("h"),
     )
 
     iter_de = splitter(point_process_dataset, is_train=True)
@@ -1080,7 +1110,7 @@ def test_count_trailing_zeros(target, expected, convert_to_np, is_train):
         target = np.array(target)
 
     data_set = ListDataset(
-        [{"target": target, "start": "2010-01-01"}], freq="1m"
+        [{"target": target, "start": "2010-01-01"}], freq="1M"
     )
     transform = CountTrailingZeros(new_field="time_remaining")
 
@@ -1154,7 +1184,7 @@ def test_to_interval_size_format(
         target = np.array(target)
 
     data_set = ListDataset(
-        [{"target": target, "start": "2010-01-01"}], freq="1m"
+        [{"target": target, "start": "2010-01-01"}], freq="1M"
     )
 
     if transform.drop_empty:

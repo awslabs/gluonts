@@ -157,7 +157,7 @@ dataset_recipes = {
     "m4_hourly": partial(
         generate_m4_dataset,
         m4_freq="Hourly",
-        pandas_freq="H",
+        pandas_freq="h",
         prediction_length=48,
     ),
     "m4_daily": partial(
