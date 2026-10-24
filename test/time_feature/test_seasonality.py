@@ -18,6 +18,7 @@ from gluonts.time_feature import get_seasonality
 from .common import H, M, Q, Y
 
 TEST_CASES = [
+    ("0h", 1),
     ("30min", 48),
     ("5B", 1),
     ("1B", 5),
