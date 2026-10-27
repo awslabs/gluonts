@@ -556,7 +556,7 @@ class Evaluator:
 
         totals["MAE_Coverage"] = np.mean(
             [
-                np.abs(totals[f"Coverage[{quantile}]"] - np.array([q.value]))
+                np.abs(totals[f"Coverage[{q}]"] - np.array([q.value]))
                 for q in self.quantiles
             ]
         )
