@@ -230,7 +230,7 @@ dev = [
     "holidays~=0.9",
     "matplotlib~=3.6",
     # Type checking
-    "mypy==1.8.0",
+    "mypy==2.3.1",
     "types-python-dateutil",
     "types-waitress",
     "types-PyYAML",

@@ -31,7 +31,7 @@ class QRF:
         """
         from skgarden import RandomForestQuantileRegressor
 
-        self.model = RandomForestQuantileRegressor(**params)
+        self.model = RandomForestQuantileRegressor(**(params or {}))
 
     def fit(self, x_train, y_train):
         self.model.fit(np.array(x_train), np.array(y_train))
@@ -51,7 +51,7 @@ class QuantileReg:
         self.quantiles = quantiles
         self.models = {
             quantile: LGBMRegressor(
-                objective="quantile", alpha=quantile, **params
+                objective="quantile", alpha=quantile, **(params or {})
             )
             for quantile in quantiles
         }

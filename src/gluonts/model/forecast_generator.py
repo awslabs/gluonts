@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 OutputTransform = Callable[[DataEntry, np.ndarray], np.ndarray]
 
-LOG_CACHE = set()
+LOG_CACHE: set[str] = set()
 OUTPUT_TRANSFORM_NOT_SUPPORTED_MSG = (
     "The `output_transform` argument is not supported and will be ignored."
 )

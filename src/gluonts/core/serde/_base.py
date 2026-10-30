@@ -296,6 +296,8 @@ decode_disallow = [
     input,
 ]
 
+MAX_DECODE_DEPTH = 64
+
 # `decode` only instantiates types that `encode` is known to produce. A class
 # not covered by the checks below is rejected rather than instantiated.
 
@@ -395,6 +397,14 @@ def decode(r: Any) -> Any:
     encode
         Inverse function.
     """
+    return _decode(r, 0)
+
+
+def _decode(r: Any, depth: int) -> Any:
+    if depth > MAX_DECODE_DEPTH:
+        raise ValueError(
+            f"Maximum serde decoding depth of {MAX_DECODE_DEPTH} exceeded."
+        )
 
     # structural recursion over the possible shapes of r
     if isinstance(r, dict) and "__kind__" in r:
@@ -418,10 +428,22 @@ def decode(r: Any) -> Any:
                 f"cannot be instantiated during decoding."
             )
 
-        args = decode(r.get("args", []))
-        kwargs = decode(r.get("kwargs", {}))
+        args = _decode(r.get("args", []), depth + 1)
+        kwargs = _decode(r.get("kwargs", {}), depth + 1)
 
         if kind == Kind.Instance:
+            if cls is partial:
+                if not args:
+                    raise ValueError("functools.partial requires a target.")
+                target = args[0]
+                target_name = fqname_for(target)
+                if target in (partial, getattr) or not _is_decode_safe(
+                    target, target_name
+                ):
+                    raise ValueError(
+                        f"{target_name} cannot be used as a partial target "
+                        f"during decoding."
+                    )
             return cls(*args, **kwargs)
 
         if kind == Kind.Stateful:
@@ -432,9 +454,9 @@ def decode(r: Any) -> Any:
         raise ValueError(f"Unknown kind {kind}.")
 
     if isinstance(r, dict):
-        return valmap(decode, r)
+        return valmap(lambda value: _decode(value, depth + 1), r)
 
     if isinstance(r, list):
-        return list(map(decode, r))
+        return [_decode(value, depth + 1) for value in r]
 
     return r

@@ -182,6 +182,6 @@ def num_masked_values(target) -> float:
     Count number of masked values in target.
     """
     if np.ma.isMaskedArray(target):
-        return np.ma.count_masked(target)
+        return float(np.ma.count_masked(target))
     else:
         return 0

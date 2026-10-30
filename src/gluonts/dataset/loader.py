@@ -151,13 +151,13 @@ def TrainDataLoader(
     Iterator[DataBatch]
         An iterator of batches.
     """
-    dataset: Dataset = Cyclic(dataset)
+    training_data: Dataset = Cyclic(dataset)
 
     if shuffle_buffer_length:
-        dataset = PseudoShuffled(dataset, shuffle_buffer_length)
+        training_data = PseudoShuffled(training_data, shuffle_buffer_length)
 
     transform += Batch(batch_size=batch_size) + AdhocTransform(stack_fn)
-    transformed_dataset = transform.apply(dataset, is_train=True)
+    transformed_dataset = transform.apply(training_data, is_train=True)
 
     batches = iter(transformed_dataset)
     return IterableSlice(batches, num_batches_per_epoch)

@@ -442,7 +442,7 @@ class SampleForecast(Forecast):
         )
         self.samples = samples
         self._sorted_samples_value = None
-        self._mean = None
+        self._mean: Optional[np.ndarray] = None
         self._dim: Optional[int] = None
         self.item_id = item_id
         self.info = info

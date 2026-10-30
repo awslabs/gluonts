@@ -881,14 +881,14 @@ class ToIntervalSizeFormat(FlatMapTransformation):
         self.discard_first = discard_first
 
     def _process_sparse_time_sample(self, a: List) -> Tuple[List, List]:
-        a: np.ndarray = np.array(a)
-        (non_zero_index,) = np.nonzero(a)
+        array = np.array(a)
+        (non_zero_index,) = np.nonzero(array)
 
         if len(non_zero_index) == 0:
             return [], []
 
         times = np.diff(non_zero_index, prepend=-1.0).tolist()
-        sizes = a[non_zero_index].tolist()
+        sizes = array[non_zero_index].tolist()
 
         if self.discard_first:
             return times[1:], sizes[1:]

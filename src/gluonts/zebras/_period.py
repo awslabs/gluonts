@@ -311,7 +311,8 @@ class Periods(_BasePeriod):
 
         if isinstance(period, str):
             period = Period(
-                np.datetime64(du_parse(period), self.freq.np_freq), self.freq
+                np.datetime64(du_parse(period), cast(Any, self.freq.np_freq)),
+                self.freq,
             )
 
         idx = (period - self.start).astype(int) // self.freq.step
@@ -412,7 +413,9 @@ def period(
         # TODO: should we add a check?
         data_ = data
 
-    return Period(freq.align(np.datetime64(data_, freq.np_freq)), freq)
+    return Period(
+        freq.align(np.datetime64(data_, cast(Any, freq.np_freq))), freq
+    )
 
 
 def periods(

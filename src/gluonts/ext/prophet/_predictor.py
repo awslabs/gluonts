@@ -168,6 +168,7 @@ class ProphetPredictor(RepresentablePredictor):
         :class:`ProphetDataEntry` and return the resulting array of samples.
         """
 
+        assert Prophet is not None
         prophet = self.init_model(Prophet(**params))
 
         # Register dynamic features as regressors to the model

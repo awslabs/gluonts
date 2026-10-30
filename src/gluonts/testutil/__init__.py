@@ -62,7 +62,7 @@ def empirical_cdf(
     edges = []
 
     batch_shape = samples.shape[1:]
-    agg_batch_dim = np.prod(batch_shape)
+    agg_batch_dim = int(np.prod(batch_shape))
 
     samples = samples.reshape((samples.shape[0], -1))
 
