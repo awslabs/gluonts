@@ -23,6 +23,8 @@ from gluonts.dataset.repository import get_dataset
 from gluonts.dataset.multivariate_grouper import MultivariateGrouper
 from gluonts.model.predictor import Predictor
 from gluonts.torch.model.forecast import DistributionForecast
+from gluonts.torch.distributions import QuantileOutput
+from gluonts.torch.model.crossformer import CrossformerEstimator
 from gluonts.torch.model.i_transformer import ITransformerEstimator
 
 
@@ -31,6 +33,18 @@ from gluonts.torch.model.i_transformer import ITransformerEstimator
     [
         lambda dataset: ITransformerEstimator(
             prediction_length=dataset.metadata.prediction_length,
+            batch_size=4,
+            num_batches_per_epoch=3,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda dataset: CrossformerEstimator(
+            freq=dataset.metadata.freq,
+            prediction_length=dataset.metadata.prediction_length,
+            context_length=4 * dataset.metadata.prediction_length,
+            seg_len=max(1, dataset.metadata.prediction_length // 2),
+            d_model=16,
+            d_ff=32,
+            n_heads=4,
             batch_size=4,
             num_batches_per_epoch=3,
             trainer_kwargs=dict(max_epochs=2),
@@ -80,6 +94,19 @@ def test_multivariate_estimator_constant_dataset(
     [
         lambda freq, prediction_length: ITransformerEstimator(
             prediction_length=prediction_length,
+            batch_size=4,
+            trainer_kwargs=dict(max_epochs=2),
+        ),
+        lambda freq, prediction_length: CrossformerEstimator(
+            freq=freq,
+            prediction_length=prediction_length,
+            context_length=4 * prediction_length,
+            seg_len=max(1, prediction_length // 2),
+            d_model=12,
+            d_ff=24,
+            n_heads=3,
+            num_feat_dynamic_real=3,
+            distr_output=QuantileOutput([0.1, 0.5, 0.9]),
             batch_size=4,
             trainer_kwargs=dict(max_epochs=2),
         ),

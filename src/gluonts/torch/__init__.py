@@ -23,6 +23,7 @@ __all__ = [
     "DLinearEstimator",
     "PatchTSTEstimator",
     "LagTSTEstimator",
+    "CrossformerEstimator",
 ]
 import torch
 from .model.estimator import PyTorchLightningEstimator
@@ -36,6 +37,7 @@ from .model.wavenet import WaveNetEstimator
 from .model.d_linear import DLinearEstimator
 from .model.patch_tst import PatchTSTEstimator
 from .model.lag_tst import LagTSTEstimator
+from .model.crossformer import CrossformerEstimator
 
 
 from . import prelude as _  # noqa
