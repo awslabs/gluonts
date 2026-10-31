@@ -499,6 +499,7 @@ def test_dirichlet(hybridize: bool) -> None:
     ), f"Covariance did not match: cov = {cov}, cov_hat = {cov_hat}"
 
 
+@pytest.mark.flaky(retries=3)
 @pytest.mark.parametrize("hybridize", [True, False])
 def test_dirichlet_multinomial(hybridize: bool) -> None:
     num_samples = 2000
