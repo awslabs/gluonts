@@ -39,7 +39,7 @@ def generate_uber_dataset(
         temp_dir_path = Path(dir_path)
         temp_zip_path = temp_dir_path / "uber-dataset.zip"
         uber_url_path = (
-            "http://raw.githubusercontent.com/fivethirtyeight/"
+            "https://raw.githubusercontent.com/fivethirtyeight/"
             "uber-tlc-foil-response/master/uber-trip-data/"
             "uber-raw-data-janjune-15.csv.zip"
         )
