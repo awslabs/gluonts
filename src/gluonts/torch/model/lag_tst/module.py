@@ -76,8 +76,13 @@ class LagTSTModel(nn.Module):
             self.scaler = MeanScaler(keepdim=True)
         elif scaling == "std":
             self.scaler = StdScaler(keepdim=True)
-        else:
+        elif scaling is None:
             self.scaler = NOPScaler(keepdim=True)
+        else:
+            raise ValueError(
+                f"Unknown scaling={scaling!r}; "
+                "expected one of 'mean', 'std', or None."
+            )
 
         # project from number of lags + 2 features (loc and scale) to d_model
         self.patch_proj = make_linear_layer(len(self.lags_seq) + 2, d_model)
