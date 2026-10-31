@@ -165,7 +165,7 @@ class MeanEstimator(Estimator):
         )
 
         samples = np.broadcast_to(
-            array=contexts.mean(axis=0),
+            array=np.nanmean(contexts, axis=0),
             shape=(self.num_samples, self.prediction_length),
         )
 
