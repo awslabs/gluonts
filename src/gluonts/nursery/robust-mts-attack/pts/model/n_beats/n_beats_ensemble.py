@@ -187,7 +187,7 @@ class NBEATSEnsembleEstimator(PyTorchEstimator):
         Arguments passed down to the individual estimators.
     """
 
-    @validted()
+    @validated()
     def __init__(
         self,
         freq: str,
