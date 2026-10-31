@@ -20,6 +20,20 @@ from gluonts.time_feature import norm_freq_str
 logger = logging.getLogger(__name__)
 
 
+#: Default calendar-based seasonality values for common pandas frequencies.
+#:
+#: These are heuristic defaults based on common calendar conventions, not
+#: values inferred from data. They are used when a seasonality parameter
+#: is required but no data-driven estimation is performed.
+#:
+#: - Seconds ("S", "s"): 3600 (one hour of seconds)
+#: - Minutes ("T", "min"): 1440 (one day of minutes)
+#: - Hours ("H", "h"): 24 (one day of hours)
+#: - Days ("D"): 1 (no sub-daily seasonality assumed)
+#: - Weeks ("W"): 1 (no sub-weekly seasonality assumed)
+#: - Months ("M", "ME"): 12 (one year of months)
+#: - Business days ("B"): 5 (one week of business days)
+#: - Quarters ("Q", "QE"): 4 (one year of quarters)
 DEFAULT_SEASONALITIES = {
     "S": 3600,  # 1 hour
     "s": 3600,  # 1 hour
@@ -39,10 +53,47 @@ DEFAULT_SEASONALITIES = {
 
 def get_seasonality(freq: str, seasonalities=DEFAULT_SEASONALITIES) -> int:
     """
-    Return the seasonality of a given frequency:
+    Return the default calendar-based seasonality for a given frequency.
 
-    >>> get_seasonality("2h")
+    .. note::
+        This function does **not** detect or estimate seasonality from data.
+        It returns a predetermined constant based on the pandas frequency
+        string, using common calendar heuristics (e.g., hourly data defaults
+        to 24, monthly data defaults to 12).
+
+    The returned value is used in evaluation metrics (e.g., MASE scaling),
+    seasonal naive baselines, and other components that require a seasonality
+    parameter but do not perform statistical inference.
+
+    Parameters
+    ----------
+    freq
+        A pandas-compatible frequency string (e.g., "H", "D", "M", "2H").
+    seasonalities
+        A dictionary mapping base frequency strings to their default
+        seasonality values. Defaults to ``DEFAULT_SEASONALITIES``.
+
+    Returns
+    -------
+    int
+        The default seasonality for the given frequency. Returns 1 if the
+        frequency is not recognized or the multiple does not evenly divide
+        the base seasonality.
+
+    Examples
+    --------
+    >>> get_seasonality("H")
+    24
+    >>> get_seasonality("2H")
     12
+    >>> get_seasonality("M")
+    12
+    >>> get_seasonality("D")
+    1
+
+    See Also
+    --------
+    DEFAULT_SEASONALITIES : The mapping of base frequencies to seasonality.
     """
     offset = pd.tseries.frequencies.to_offset(freq)
 
