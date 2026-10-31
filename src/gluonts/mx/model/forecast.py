@@ -57,6 +57,7 @@ class DistributionForecast(Forecast):
         start_date: pd.Period,
         item_id: Optional[str] = None,
         info: Optional[Dict] = None,
+        index: Optional[pd.DatetimeIndex] = None,
     ) -> None:
         self.distribution = distribution
         self.shape = (
@@ -65,6 +66,8 @@ class DistributionForecast(Forecast):
         self.prediction_length = self.shape[0]
         self.item_id = item_id
         self.info = info
+        if index is not None:
+            self._index = index[-self.prediction_length :]
 
         assert isinstance(
             start_date, pd.Period
@@ -103,6 +106,7 @@ class DistributionForecast(Forecast):
             start_date=self.start_date,
             item_id=self.item_id,
             info=self.info,
+            index=self.index,
         )
 
     def to_quantile_forecast(self, quantiles: List[Union[float, str]]):
@@ -112,4 +116,5 @@ class DistributionForecast(Forecast):
             start_date=self.start_date,
             item_id=self.item_id,
             info=self.info,
+            index=self.index,
         )

@@ -158,6 +158,9 @@ class QuantileForecastGenerator(ForecastGenerator):
                     ),
                     info=batch["info"][i] if "info" in batch else None,
                     forecast_keys=self.quantiles,
+                    index=batch[FieldName.INDEX][i]
+                    if FieldName.INDEX in batch
+                    else None,
                 )
             assert i + 1 == len(batch[FieldName.FORECAST_START])
 
@@ -210,6 +213,9 @@ class SampleForecastGenerator(ForecastGenerator):
                         else None
                     ),
                     info=batch["info"][i] if "info" in batch else None,
+                    index=batch[FieldName.INDEX][i]
+                    if FieldName.INDEX in batch
+                    else None,
                 )
             assert i + 1 == len(batch[FieldName.FORECAST_START])
 
@@ -252,5 +258,8 @@ class DistributionForecastGenerator(ForecastGenerator):
                         else None
                     ),
                     info=batch["info"][i] if "info" in batch else None,
+                    index=batch[FieldName.INDEX][i]
+                    if FieldName.INDEX in batch
+                    else None,
                 )
             assert i + 1 == len(batch[FieldName.FORECAST_START])
