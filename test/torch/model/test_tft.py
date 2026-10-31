@@ -13,11 +13,16 @@
 
 from typing import List
 
+import numpy as np
 import torch
 import pytest
 
+from gluonts.dataset.common import ListDataset
 from gluonts.torch.distributions import QuantileOutput
-from gluonts.torch.model.tft import TemporalFusionTransformerLightningModule
+from gluonts.torch.model.tft import (
+    TemporalFusionTransformerEstimator,
+    TemporalFusionTransformerLightningModule,
+)
 
 
 @pytest.mark.parametrize(
@@ -137,3 +142,41 @@ def test_tft_modules(
 
     assert lightning_module.training_step(batch, batch_idx=0).shape == ()
     assert lightning_module.validation_step(batch, batch_idx=0).shape == ()
+
+
+def test_tft_estimator_accepts_past_dynamic_categorical_lists():
+    dataset = ListDataset(
+        [
+            {
+                "start": "2021-01-01 00:00:00",
+                "target": np.arange(8, dtype=np.float32),
+                "past_feat_dynamic_cat": [np.arange(8, dtype=np.int32) % 3],
+            }
+        ],
+        freq="1H",
+    )
+    estimator = TemporalFusionTransformerEstimator(
+        freq="1H",
+        prediction_length=2,
+        context_length=4,
+        time_features=[],
+        past_dynamic_cardinalities=[3],
+        batch_size=1,
+        num_batches_per_epoch=1,
+        trainer_kwargs={
+            "max_epochs": 1,
+            "accelerator": "cpu",
+            "logger": False,
+            "enable_checkpointing": False,
+        },
+    )
+
+    transformed = estimator.create_transformation().apply(
+        dataset, is_train=True
+    )
+    loader = estimator.create_training_data_loader(
+        transformed, estimator.create_lightning_module()
+    )
+
+    batch = next(iter(loader))
+    assert batch["past_feat_dynamic_cat"].shape == (1, 4, 1)

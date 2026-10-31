@@ -387,6 +387,12 @@ class ProcessDataEntry:
                     is_static=False,
                 ),
                 ProcessTimeSeriesField(
+                    FieldName.PAST_FEAT_DYNAMIC_CAT,
+                    is_required=False,
+                    is_cat=True,
+                    is_static=False,
+                ),
+                ProcessTimeSeriesField(
                     FieldName.FEAT_DYNAMIC_REAL_LEGACY,  # backwards compatible
                     is_required=False,
                     is_cat=False,
