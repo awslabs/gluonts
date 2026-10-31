@@ -30,8 +30,8 @@ class Grouper:
     ) -> None:
         self.fill_value = fill_value
 
-        self.first_timestamp = pd.Timestamp(2200, 1, 1, 12)
-        self.last_timestamp = pd.Timestamp(1800, 1, 1, 12)
+        self.first_timestamp = None
+        self.last_timestamp = None
         self.frequency = None
         self.align_data = align_data
         self.max_target_length = 0
@@ -55,7 +55,7 @@ class Grouper:
     def to_ts(self, data: DataEntry):
         return pd.Series(
             data["target"],
-            index=pd.date_range(
+            index=pd.period_range(
                 start=data["start"],
                 periods=len(data["target"]),
                 freq=data["start"].freq,
@@ -67,7 +67,7 @@ class Grouper:
         # fill target invidually if we want to fill all of them, we should use a dataframe
         ts = self.to_ts(data)
         d["target"] = ts.reindex(
-            pd.date_range(
+            pd.period_range(
                 start=self.first_timestamp,
                 end=self.last_timestamp,
                 freq=d["start"].freq,
@@ -89,6 +89,11 @@ class Grouper:
         """
         for data in dataset:
             timestamp = data["start"]
+            if self.first_timestamp is None:
+                self.first_timestamp = timestamp
+            if self.last_timestamp is None:
+                self.last_timestamp = timestamp
+
             self.first_timestamp = min(self.first_timestamp, timestamp)
 
             self.frequency = (
@@ -136,7 +141,7 @@ class Grouper:
         def left_pad_data(data: DataEntry):
             ts = self.to_ts(data)
             filled_ts = ts.reindex(
-                pd.date_range(
+                pd.period_range(
                     start=self.first_timestamp,
                     end=ts.index[-1],
                     freq=data["start"].freq,
@@ -146,9 +151,13 @@ class Grouper:
             return filled_ts.values
 
         grouped_entry = [left_pad_data(data) for data in dataset]
-        grouped_entry = np.array(grouped_entry)
 
-        split_dataset = np.split(grouped_entry, self.num_test_dates)
+        assert len(grouped_entry) % self.num_test_dates == 0
+        split_size = len(grouped_entry) // self.num_test_dates
+        split_dataset = [
+            grouped_entry[i : i + split_size]
+            for i in range(0, len(grouped_entry), split_size)
+        ]
 
         all_entries = list()
         for dataset_at_test_date in split_dataset:
