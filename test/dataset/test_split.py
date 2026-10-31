@@ -451,3 +451,61 @@ def test_invalid_offset(dataset, date, offset, windows, distance):
             )
         )
     assert exp_msg in str(excinfo.value)
+
+
+@pytest.mark.parametrize("split_kind", ["offset", "date"])
+@pytest.mark.parametrize("multivariate", [False, True])
+@pytest.mark.parametrize("max_history", [3, 5, 100])
+def test_max_history_caps_available_history(
+    split_kind, multivariate, max_history
+):
+    start = pd.Period("2024-01-01", freq="2h")
+    target = np.arange(12)
+    if multivariate:
+        target = np.stack([target, target + 100])
+    original_target = target.copy()
+    entry = {
+        FieldName.START: start,
+        FieldName.TARGET: target,
+        FieldName.FEAT_DYNAMIC_REAL: np.arange(14).reshape(1, -1),
+        FieldName.FEAT_DYNAMIC_CAT: np.arange(14).reshape(1, -1),
+        FieldName.PAST_FEAT_DYNAMIC_REAL: np.arange(12).reshape(1, -1),
+        FieldName.ITEM_ID: "synthetic",
+    }
+    kwargs = {"offset": 5} if split_kind == "offset" else {"date": start + 4}
+    training, template = split([entry], **kwargs)
+    pairs = list(
+        template.generate_instances(
+            prediction_length=2, windows=2, max_history=max_history
+        )
+    )
+    np.testing.assert_array_equal(
+        next(iter(training))[FieldName.TARGET], target[..., :5]
+    )
+    for window, (inputs, labels) in enumerate(pairs):
+        forecast_offset = 5 + 2 * window
+        history_start = max(0, forecast_offset - max_history)
+        np.testing.assert_array_equal(
+            inputs[FieldName.TARGET],
+            target[..., history_start:forecast_offset],
+        )
+        np.testing.assert_array_equal(
+            labels[FieldName.TARGET],
+            target[..., forecast_offset : forecast_offset + 2],
+        )
+        assert inputs[FieldName.START] == start + history_start
+        assert labels[FieldName.START] == start + forecast_offset
+        assert inputs[FieldName.ITEM_ID] == entry[FieldName.ITEM_ID]
+        for field in (FieldName.FEAT_DYNAMIC_REAL, FieldName.FEAT_DYNAMIC_CAT):
+            np.testing.assert_array_equal(
+                inputs[field],
+                entry[field][..., history_start : forecast_offset + 2],
+            )
+        np.testing.assert_array_equal(
+            inputs[FieldName.PAST_FEAT_DYNAMIC_REAL],
+            entry[FieldName.PAST_FEAT_DYNAMIC_REAL][
+                ..., history_start:forecast_offset
+            ],
+        )
+    np.testing.assert_array_equal(entry[FieldName.TARGET], original_target)
+    assert entry[FieldName.START] == start
