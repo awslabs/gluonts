@@ -114,7 +114,11 @@ class BinnedUniforms(Distribution):
 
         median.shape : (*batch_shape,)
         """
-        return self.icdf(torch.tensor(0.5))
+        return self.icdf(
+            torch.tensor(
+                0.5, device=self.logits.device, dtype=self.logits.dtype
+            )
+        )
 
     @property
     def mean(self):
@@ -402,13 +406,19 @@ class BinnedUniforms(Distribution):
         Returns:
             samples of shape (*sample_shape, *batch_shape)
         """
+        # Draw on the device and with the dtype of the distribution parameters
+        factory_kwargs = dict(
+            device=self.logits.device, dtype=self.logits.dtype
+        )
         if len(sample_shape) == 0:
-            quantiles = torch.rand(self.batch_shape)
+            quantiles = torch.rand(self.batch_shape, **factory_kwargs)
             samples = self.icdf(quantiles)
         else:
-            samples = torch.zeros(list(sample_shape) + list(self.batch_shape))
+            samples = torch.zeros(
+                list(sample_shape) + list(self.batch_shape), **factory_kwargs
+            )
             for i in range(sample_shape[0]):
-                quantiles = torch.rand(self.batch_shape)
+                quantiles = torch.rand(self.batch_shape, **factory_kwargs)
                 samples_i = self.icdf(quantiles)
                 samples[i, ...] = samples_i
 
