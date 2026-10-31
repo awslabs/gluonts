@@ -44,9 +44,11 @@ def distance_to_holiday(holiday):
         assert (
             len(holiday_date) != 0
         ), f"No closest holiday for the date index {index} found."
-        # It sometimes returns two dates if it is exactly half a year after the
-        # holiday. In this case, the smaller distance (182 days) is returned.
-        return (index - holiday_date[0]).days
+        # The window spans more than a year, so it can contain two
+        # occurrences of the holiday; return the signed distance to the
+        # nearest one. Exact ties are resolved towards the earlier
+        # occurrence, i.e. a positive distance.
+        return min(((index - date).days for date in holiday_date), key=abs)
 
     return distance_to_day
 

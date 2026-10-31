@@ -290,3 +290,40 @@ def test_special_date_feature_set_daily_squared_exponential():
     np.testing.assert_almost_equal(
         computed_features, reference_features, decimal=6
     )
+
+
+@pytest.mark.parametrize(
+    "holiday, index, expected_distance",
+    [
+        # 2019-07-03 is 183 days after 2019-01-01 and 182 days before
+        # 2020-01-01: the nearest New Year's Day is the next one.
+        (NEW_YEARS_DAY, "2019-07-03", -182),
+        # 2019-07-20 is 200 days after 2019-01-01 and 165 days before
+        # 2020-01-01.
+        (NEW_YEARS_DAY, "2019-07-20", -165),
+        # 2020-01-20 is 200 days after 2019-07-04 and 166 days before
+        # 2020-07-04 (2020 is a leap year).
+        (INDEPENDENCE_DAY, "2020-01-20", -166),
+        # Unchanged: the previous occurrence is still the nearest one here.
+        (NEW_YEARS_DAY, "2019-07-02", 182),
+        (CHRISTMAS_DAY, "2018-12-25", 0),
+        (CHRISTMAS_DAY, "2018-12-20", -5),
+    ],
+)
+def test_distance_to_nearest_occurrence(holiday, index, expected_distance):
+    distance_function = SPECIAL_DATE_FEATURES[holiday]
+    assert distance_function(pd.to_datetime(index)) == expected_distance
+
+
+@pytest.mark.parametrize("holiday", test_dates.keys())
+def test_distance_never_exceeds_half_a_year(holiday):
+    # Every holiday here occurs once a year, so no date can be further than
+    # half of the largest gap between consecutive occurrences. Easter moves by
+    # up to 20 days from one year to the next, putting consecutive dates as much
+    # as 385 days apart, which is what the 192 bound allows for.
+    distance_function = SPECIAL_DATE_FEATURES[holiday]
+    for index in pd.date_range(start="2018-01-01", end="2019-12-31", freq="D"):
+        assert abs(distance_function(index)) <= 192, (
+            f"{holiday} reports a distance of {distance_function(index)} days"
+            f" for {index.date()}"
+        )
