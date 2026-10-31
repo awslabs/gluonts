@@ -1,0 +1,106 @@
+experiment: 3modesystem
+model: REDSDS
+dataset: 3modesystem
+seg_labels: true
+d_min: 5
+d_max: 20
+batch_size: 32
+context_length: 180
+prediction_length: 20
+freq: H
+x_dim: 4
+obs_dim: 1
+log_dir: ./results/exps1-d/3modesystem/{timestamp}/logs/
+log_steps: 500
+model_dir: ./results/exps1-d/3modesystem/{timestamp}/models/
+save_steps: 500
+num_categories: 3
+num_steps: 20000
+num_samples: 1
+objective: elbov2
+flat_learning_rate: false
+warmup_start_lr: 1.e-4
+learning_rate: 5.e-3
+grad_clip_norm: 10.
+weight_decay: 1.e-5
+warmup_steps_lr: 1000
+initial_switch:
+  mlp_hiddendim: 8
+discrete_transition:
+  takes_x: true
+  takes_y: false
+continuous_transition:
+  model_type: nonlinear
+  tied_cov: false
+  trainable_cov: true
+  fixed_sigma: 0.02
+  max_scale: 2
+  mlp_hiddendim: 32
+emission:
+  model_type: nonlinear
+  tied_cov: true
+  trainable_cov: true
+  fixed_sigma: 0.5
+  max_scale: 2
+inference: 
+  tied_cov: false
+  trainable_cov: true
+  fixed_sigma: 0.02
+  max_scale: 2
+  embedder: brnn  # transformer or brnn
+# BRNN params
+  embedding_rnndim: 4
+  embedding_rnnlayers: 1
+# Transformer params
+  embedding_trans_usepe: true
+  embedding_trans_nhead: 1
+  embedding_trans_embdim: 4
+  embedding_trans_mlpdim: 16
+  embedding_trans_nlayers: 1
+# Causal RNN
+  use_causal_rnn: true
+  causal_rnndim: 16
+# MLP
+  mlp_hiddendim: 32
+initial_state:
+  tied_cov: true
+  trainable_cov: true
+  fixed_sigma: 0.02
+  max_scale: 2
+  mlp_hiddendim: 8
+control:
+  mlp_hiddendim: 64
+  has_ctrl: false
+  z: false
+  x: false
+  inference: false
+  emb_dim: 0
+  feat_dim: 0
+  n_staticfeat: 0
+  n_timefeat: 0
+transform_target: false
+transform_only_scale: false
+use_jacobian: false
+forecast:
+  num_samples: 100
+  deterministic_z: true
+  deterministic_x: false
+  deterministic_y: true
+switch_t_annealing: false
+switch_t_init: 10.
+switch_t_min: 1.
+switch_t_annealing_rate: 0.99
+switch_t_annealing_steps: 50
+switch_t_annealing_kickin_steps: 1000
+dur_t_annealing: true
+dur_t_init: 10.
+dur_t_min: 1.
+dur_t_annealing_rate: 0.99
+dur_t_annealing_steps: 50
+dur_t_annealing_kickin_steps: 1000
+cont_ent_anneal: 1.0
+xent_annealing: false
+xent_init: 0.
+xent_rate: 0.99
+xent_steps: 50
+xent_kickin_steps: 0

@@ -1,0 +1,8 @@
+.DS_Store
+.vscode
+__pycache__
+.ipynb_checkpoints
+data/*.npy
+data/*.npz
+results/
+trained_models/
