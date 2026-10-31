@@ -1200,3 +1200,61 @@ def test_valmap():
 
     for entry in Valmap(str)(data, is_train=False):
         assert entry == {"a": "1", "b": "[2]"}
+
+
+@pytest.mark.parametrize("observed_value_field", [None, FieldName.OBSERVED_VALUES])
+def test_TFTInstanceSplitter_observed_value_field_optional(observed_value_field):
+    """
+    Regression test for #3259 (umbrella #3296 item 3).
+
+    PR #3259 made ``observed_value_field`` optional in
+    ``TFTInstanceSplitter``. Before the change, the splitter required a
+    string and would slice a corresponding array out of every entry.
+    After the change, callers can pass ``None`` to opt out — useful for
+    pipelines that don't precompute an observed-value mask. This test
+    pins both branches:
+
+    - ``observed_value_field=None``: the splitter must not look up an
+      observed-value array on the entry, and the output must contain
+      neither ``past_<observed>`` nor ``<observed>`` keys.
+    - ``observed_value_field=FieldName.OBSERVED_VALUES`` (default-like):
+      the splitter slices the array and emits ``past_<observed>``.
+    """
+    from gluonts.transform.split import TFTInstanceSplitter
+
+    past_length = 10
+    future_length = 5
+    target = np.arange(50, dtype=float)
+
+    data = {
+        FieldName.START: pd.Period("2021-01-01", freq="D"),
+        FieldName.TARGET: target,
+    }
+    # Only precompute the observed-values mask when the splitter is
+    # configured to use it; the None branch must not require it.
+    if observed_value_field is not None:
+        data[FieldName.OBSERVED_VALUES] = np.ones_like(target)
+
+    splitter = TFTInstanceSplitter(
+        instance_sampler=transform.TestSplitSampler(),
+        past_length=past_length,
+        future_length=future_length,
+        observed_value_field=observed_value_field,
+    )
+
+    out = list(splitter.flatmap_transform(data, is_train=False))
+    assert len(out) == 1
+    entry = out[0]
+
+    # Past-target slice is always present and has the configured length.
+    assert entry["past_target"].shape[-1] == past_length
+
+    past_observed_key = f"past_{FieldName.OBSERVED_VALUES}"
+    if observed_value_field is None:
+        # No observed-value array was looked up or emitted.
+        assert past_observed_key not in entry
+        assert FieldName.OBSERVED_VALUES not in entry
+    else:
+        # The default-like branch slices the mask and emits past_observed_values.
+        assert past_observed_key in entry
+        assert entry[past_observed_key].shape[-1] == past_length
