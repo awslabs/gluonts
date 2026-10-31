@@ -299,7 +299,7 @@ class Periods(_BasePeriod):
 
     def intersection(self, other):
         # TODO: Is this needed?
-        return self.data[np.in1d(self, other)]
+        return self.data[np.isin(self, other)]
 
     def index_of(self, period: Union[str, Period]):
         """
