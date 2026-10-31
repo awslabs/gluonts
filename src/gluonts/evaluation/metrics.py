@@ -18,6 +18,22 @@ import numpy as np
 from gluonts.time_feature import get_seasonality
 
 
+def r2_score(target: np.ndarray, forecast: np.ndarray) -> float:
+    r"""
+    .. math::
+
+        R^2 = 1 - \frac{SS_{res}}{SS_{tot}}
+
+    Where:
+        - SS_{res} = sum((Y - \hat{Y})^2)
+        - SS_{tot} = sum((Y - \bar{Y})^2)
+    """
+    mean_target = np.mean(target)
+    ss_res = np.sum((target - forecast)**2)
+    ss_tot = np.sum((target - mean_target)**2)
+    r2 = 1 - (ss_res / ss_tot)
+    return r2
+
 def calculate_seasonal_error(
     past_data: np.ndarray,
     freq: Optional[str] = None,
