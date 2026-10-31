@@ -35,7 +35,7 @@ from ._base import (
 )
 from .holiday import SPECIAL_DATE_FEATURES, SpecialDateFeatureSet
 from .lag import get_lags_for_frequency
-from .seasonality import get_seasonality
+from .seasonality import get_seasonality, get_seasonality_for_frequency
 
 __all__ = [
     "Constant",
@@ -47,6 +47,7 @@ __all__ = [
     "day_of_year_index",
     "get_lags_for_frequency",
     "get_seasonality",
+    "get_seasonality_for_frequency",
     "hour_of_day",
     "hour_of_day_index",
     "minute_of_hour",
