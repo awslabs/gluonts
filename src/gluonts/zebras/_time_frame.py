@@ -27,6 +27,7 @@ from gluonts.itertools import (
     rows_to_columns,
     select,
     join_items,
+    replace,
 )
 
 from ._base import Pad, TimeBase
@@ -168,6 +169,112 @@ class TimeFrame(TimeBase):
             index=index,
             length=length,
             _pad=Pad(pad_left, pad_right),
+        )
+
+    def update(self, other: TimeFrame, default=np.nan) -> TimeFrame:
+        """Create a new ``TimeFrame`` which includes values of both input
+        frames.
+
+        The new frame spans both input frames and inserts default values if
+        there is a gap between the two frames. If both frames overlap, the
+        second overwrites the values of the first frame.
+
+        Static columns and metadata is also updated, and the second frames
+        value take precedence.
+
+        Updating a frame with itself is effectively a noop, similar to how
+        ``dict.update`` on the same dict will return an identical result.
+
+        Update requires that both frame have defined indices, since otherwise
+        its not possible to know how the values relate to each other.
+
+        Note: ``update`` will reset the padding.
+        """
+
+        if self.index is None or other.index is None:
+            raise ValueError("Both time frames need to have an index.")
+
+        if self.index.freq != other.index.freq:
+            raise ValueError("frequency mismatch on index.")
+
+        # ensure tdims match
+        for name, left, right in join_items(self.tdims, other.tdims, "inner"):
+            if left != right:
+                raise ValueError(
+                    f"tdims of {name} don't match {left} != {right}"
+                )
+
+        # ensure column shapes match
+        for name, left, right in join_items(
+            self.columns, other.columns, "inner"
+        ):
+            tdim = self.tdims[name]
+
+            if replace(left.shape, tdim, 0) != replace(right.shape, tdim, 0):
+                raise ValueError(f"Incompatible shapes of columns {name}")
+
+        start = min(self.index.start, other.index.start)
+        end = max(self.index.end, other.index.end)
+
+        # create a new index that spans the new range
+        index = Periods(
+            np.arange(
+                start.to_numpy(),
+                # arange is exclusive, thus we need to add `1`
+                (end + 1).to_numpy(),
+                start.freq.step,
+            ),
+            start.freq,
+        )
+        # get position of self and other relative to new index
+        # (one of them will be zero)
+        self_idx0 = index.index_of(self.index.start)
+        other_idx0 = index.index_of(other.index.start)
+
+        tdims = {**self.tdims, **other.tdims}
+        # create new columns, by first filling them with default values and
+        # then writing the values of self and other to them
+        columns = {}
+        for name, self_col, other_col in join_items(
+            self.columns, other.columns, "outer"
+        ):
+            tdim = tdims[name]
+
+            values = np.full(
+                replace(
+                    cast(
+                        TimeFrame,
+                        maybe.unwrap(maybe.or_(self_col, other_col)),
+                    ).shape,
+                    tdim,
+                    len(index),
+                ),
+                default,
+            )
+            view = AxisView(values, tdim)
+
+            if self_col is not None:
+                view[self_idx0 : self_idx0 + len(self)] = self_col
+            if other_col is not None:
+                view[other_idx0 : other_idx0 + len(other)] = other_col
+
+            columns[name] = values
+
+        static = {**self.static, **other.static}
+
+        if self.metadata is not None and other.metadata is not None:
+            metadata: Optional[dict] = {**self.metadata, **other.metadata}
+        else:
+            metadata = maybe.or_(self.metadata, other.metadata)
+
+        return _replace(
+            self,
+            columns=columns,
+            static=static,
+            index=index,
+            length=len(index),
+            metadata=metadata,
+            _pad=Pad(),
         )
 
     def astype(self, type, columns=None) -> TimeFrame:
