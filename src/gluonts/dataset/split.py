@@ -253,8 +253,13 @@ class AbstractBaseSplitter(ABC):
                 )
 
                 if max_history is not None:
+                    history_length = min(
+                        max_history, test[0][FieldName.TARGET].shape[-1]
+                    )
                     yield (
-                        slice_data_entry(test[0], slice(-max_history, None)),
+                        slice_data_entry(
+                            test[0], slice(-history_length, None)
+                        ),
                         test[1],
                     )
                 else:
@@ -373,7 +378,8 @@ class TestData:
         window generated, for each of the original dataset entries.
     max_history
         If given, all entries in the *test*-set have a max-length of
-        `max_history`. This can be used to produce smaller file-sizes.
+        `max_history`. Shorter histories are kept unchanged. This can be
+        used to produce smaller file-sizes.
     """
 
     dataset: Dataset
@@ -468,7 +474,8 @@ class TestTemplate:
             window generated, for each of the original dataset entries.
         max_history
             If given, all entries in the *test*-set have a max-length of
-            `max_history`. This can be used to produce smaller file-sizes.
+            `max_history`. Shorter histories are kept unchanged. This can be
+            used to produce smaller file-sizes.
         """
         return TestData(
             self.dataset,
