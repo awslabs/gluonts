@@ -316,5 +316,19 @@ def test_lags(freq_str, expected_lags):
     assert lags == expected_lags
 
 
+@pytest.mark.parametrize("num_default_lags", [0, 1, 3, 7, 10, 14])
+def test_num_default_lags_consistency(num_default_lags: int):
+    lags = date_feature_set.get_lags_for_frequency(
+        "D", num_default_lags=num_default_lags
+    )
+    # The first num_default_lags elements match range(1, num_default_lags + 1)
+    assert lags[:num_default_lags] == list(range(1, num_default_lags + 1))
+    # All lags are positive and sorted without duplicates
+    assert all(lag > 0 for lag in lags)
+    assert lags == sorted(set(lags))
+    # Any subsequent seasonal lags are strictly greater than num_default_lags
+    assert all(lag > num_default_lags for lag in lags[num_default_lags:])
+
+
 if __name__ == "__main__":
     test_lags()
