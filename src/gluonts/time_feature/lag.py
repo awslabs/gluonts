@@ -150,7 +150,10 @@ def get_lags_for_frequency(
 
     # flatten lags list and filter
     lags = [
-        int(lag) for sub_list in lags for lag in sub_list if 7 < lag <= lag_ub
+        int(lag)
+        for sub_list in lags
+        for lag in sub_list
+        if max(num_default_lags, 0) < lag <= lag_ub
     ]
     lags = list(range(1, num_default_lags + 1)) + sorted(list(set(lags)))
 
