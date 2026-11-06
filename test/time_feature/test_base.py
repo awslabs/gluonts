@@ -14,7 +14,10 @@
 import pytest
 from pandas.tseries.frequencies import to_offset
 
-from gluonts.time_feature import norm_freq_str
+from gluonts.time_feature import (
+    norm_freq_str,
+    time_features_from_frequency_str,
+)
 
 from .common import M, Q, S, Y
 
@@ -31,3 +34,20 @@ from .common import M, Q, S, Y
 def test_norm_freq_str(aliases, normalized_freq_str):
     for alias in aliases:
         assert norm_freq_str(to_offset(alias).name) == normalized_freq_str
+
+
+@pytest.mark.parametrize(
+    "freq_str",
+    [
+        "100ms",
+        "10ms",
+        "ms",
+        "100us",
+        "us",
+        "100ns",
+        "ns",
+    ],
+)
+def test_time_features_from_frequency_str_subsecond(freq_str):
+    features = time_features_from_frequency_str(freq_str)
+    assert len(features) == 6
