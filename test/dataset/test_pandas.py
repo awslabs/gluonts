@@ -453,3 +453,69 @@ def test_from_long_dataframe_does_not_mutate_caller_when_index_not_datetime():
     pandas.PandasDataset.from_long_dataframe(df, item_id="item", freq="1D")
 
     pd.testing.assert_index_equal(df.index, original_index)
+
+
+@pytest.mark.parametrize(
+    "freq, expected_base",
+    [
+        ("YS", "Y"),
+        ("YS-JAN", "Y-JAN"),
+        ("2YS", "2Y"),
+        ("AS", "Y"),
+        ("MS", "M"),
+        ("QS", "Q"),
+        ("YE", "Y"),
+        ("ME", "M"),
+        ("QE", "Q"),
+        ("D", "D"),
+        ("1D", "D"),
+        ("2h", "2h"),
+    ],
+)
+def test_to_period_freq(freq, expected_base):
+    result = pandas.to_period_freq(freq)
+    assert result.startswith(expected_base)
+    # verify it is accepted by PeriodIndex
+    pd.period_range("2020-01-01", periods=2, freq=result)
+
+
+@pytest.mark.parametrize("freq", ["YS", "MS", "QS", "YE", "ME", "QE"])
+def test_pandas_dataset_with_period_frequencies(freq):
+    """
+    Regression test for GH-3153: ensure year/month/quarter start and end frequencies
+    can be used without 'object has no attribute _period_dtype_code' or
+    'is not supported as period frequency' error.
+    """
+    # 1. Inferred frequency
+    idx = pd.date_range("2020-01-01", periods=3, freq=freq)
+    df = pd.DataFrame({"target": [1.0, 2.0, 3.0]}, index=idx)
+    ds = pandas.PandasDataset(df)
+    entry = next(iter(ds))
+    assert isinstance(entry["start"], pd.Period)
+    assert len(entry["target"]) == 3
+
+    # 2. Explicit frequency
+    ds_explicit = pandas.PandasDataset(df, freq=freq)
+    entry_explicit = next(iter(ds_explicit))
+    assert isinstance(entry_explicit["start"], pd.Period)
+    assert len(entry_explicit["target"]) == 3
+
+
+@pytest.mark.parametrize("freq", ["YS", "MS"])
+def test_from_long_dataframe_with_period_frequencies(freq):
+    timestamps = pd.date_range("2020-01-01", periods=3, freq=freq).to_list()
+    df = pd.DataFrame(
+        {
+            "time": 2 * timestamps,
+            "target": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+            "item": ["A", "A", "A", "B", "B", "B"],
+        }
+    )
+    ds = pandas.PandasDataset.from_long_dataframe(
+        df, target="target", timestamp="time", item_id="item", freq=freq
+    )
+    entries = list(ds)
+    assert len(entries) == 2
+    for entry in entries:
+        assert isinstance(entry["start"], pd.Period)
+        assert len(entry["target"]) == 3
