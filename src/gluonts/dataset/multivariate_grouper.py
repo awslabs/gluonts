@@ -17,7 +17,6 @@ from typing import Callable, Optional
 import numpy as np
 import pandas as pd
 
-from gluonts.itertools import batcher
 from gluonts.core.component import validated
 from gluonts.dataset.common import DataEntry, Dataset, ListDataset
 from gluonts.dataset.field_names import FieldName
@@ -84,8 +83,91 @@ class MultivariateGrouper:
         self.frequency = ""
 
     def __call__(self, dataset: Dataset) -> Dataset:
-        self._preprocess(dataset)
-        return self._group_all(dataset)
+        try:
+            from gluonts.dataset.split import (
+                InputDataset,
+                LabelDataset,
+                TestData,
+                TestTemplate,
+            )
+
+            if isinstance(dataset, TestData):
+                if (
+                    self.num_test_dates is not None
+                    and self.num_test_dates != dataset.windows
+                ):
+                    raise ValueError(
+                        f"num_test_dates ({self.num_test_dates}) must match "
+                        f"dataset.windows ({dataset.windows})"
+                    )
+                self._preprocess(dataset.dataset)
+                grouped_base = self._prepare_train_data(dataset.dataset)
+                return TestTemplate(
+                    grouped_base, dataset.splitter
+                ).generate_instances(
+                    prediction_length=dataset.prediction_length,
+                    windows=dataset.windows,
+                    distance=dataset.distance,
+                    max_history=dataset.max_history,
+                )
+            if isinstance(dataset, InputDataset):
+                return self(dataset.test_data).input
+            if isinstance(dataset, LabelDataset):
+                return self(dataset.test_data).label
+        except ImportError:
+            pass
+
+        dataset_list = list(dataset)
+        if not dataset_list:
+            return dataset_list
+
+        first_entry = dataset_list[0]
+        if isinstance(first_entry, (tuple, list)) and len(first_entry) == 2:
+            inputs = [entry[0] for entry in dataset_list]
+            labels = [entry[1] for entry in dataset_list]
+            grouped_inputs = self(inputs)
+
+            num_dates = (
+                self.num_test_dates if self.num_test_dates is not None else 1
+            )
+            assert len(labels) % num_dates == 0
+            num_series = len(labels) // num_dates
+
+            is_series_major = False
+            if num_dates > 1 and num_series > 1:
+                end_0 = (
+                    inputs[0][FieldName.START]
+                    + len(inputs[0][FieldName.TARGET])
+                    - 1
+                )
+                end_1 = (
+                    inputs[1][FieldName.START]
+                    + len(inputs[1][FieldName.TARGET])
+                    - 1
+                )
+                if end_0 != end_1 or len(inputs[0][FieldName.TARGET]) != len(
+                    inputs[1][FieldName.TARGET]
+                ):
+                    is_series_major = True
+
+            all_grouped_labels = []
+            for d in range(num_dates):
+                if is_series_major:
+                    indices = [d + s * num_dates for s in range(num_series)]
+                else:
+                    indices = [d * num_series + s for s in range(num_series)]
+                date_labels = [labels[idx] for idx in indices]
+                lbl_dict = dict(date_labels[0])
+                lbl_dict[FieldName.TARGET] = np.vstack(
+                    [l[FieldName.TARGET] for l in date_labels]
+                )
+                lbl_dict = self._restrict_max_dimensionality(lbl_dict)
+                all_grouped_labels.append(lbl_dict)
+
+            return list(zip(grouped_inputs, all_grouped_labels))
+
+        self._preprocess(dataset_list)
+        return self._group_all(dataset_list)
 
     def _preprocess(self, dataset: Dataset) -> None:
         """
@@ -96,6 +178,8 @@ class MultivariateGrouper:
              1. Storing first/last timestamp in the dataset
              2. Storing the frequency of the dataset
         """
+        self.first_timestamp = None
+        self.last_timestamp = None
         for data in dataset:
             timestamp = data[FieldName.START]
 
@@ -155,23 +239,53 @@ class MultivariateGrouper:
 
         logging.info("group test time series to datasets")
 
-        grouped_data = self._transform_target(self._left_pad_data, dataset)
+        dataset_list = list(dataset)
+        grouped_data = self._transform_target(
+            self._left_pad_data, dataset_list
+        )
 
         # Splits test dataset with rolling date into N R^d time series,
         # where N is the number of rolling evaluation dates
         assert len(grouped_data[FieldName.TARGET]) % self.num_test_dates == 0
-        split_size = len(grouped_data[FieldName.TARGET]) // self.num_test_dates
-        split_dataset = batcher(grouped_data[FieldName.TARGET], split_size)
+        num_dates = self.num_test_dates
+        num_series = len(grouped_data[FieldName.TARGET]) // num_dates
+        targets = grouped_data[FieldName.TARGET]
 
-        fields = next(iter(dataset), {}).keys()
+        is_series_major = False
+        if num_dates > 1 and num_series > 1:
+            end_0 = (
+                dataset_list[0][FieldName.START]
+                + len(dataset_list[0][FieldName.TARGET])
+                - 1
+            )
+            end_1 = (
+                dataset_list[1][FieldName.START]
+                + len(dataset_list[1][FieldName.TARGET])
+                - 1
+            )
+            if end_0 != end_1 or len(targets[0]) != len(targets[1]):
+                is_series_major = True
+
+        fields = next(iter(dataset_list), {}).keys()
         all_entries = list()
-        for dataset_at_test_date in split_dataset:
+        for d in range(num_dates):
+            if is_series_major:
+                indices = [d + s * num_dates for s in range(num_series)]
+            else:
+                indices = [d * num_series + s for s in range(num_series)]
+
+            dataset_at_test_date = [targets[idx] for idx in indices]
+            entries_at_test_date = [dataset_list[idx] for idx in indices]
+
             grouped_data = dict()
             grouped_data[FieldName.TARGET] = np.vstack(dataset_at_test_date)
 
             if FieldName.FEAT_DYNAMIC_REAL in fields:
                 grouped_data[FieldName.FEAT_DYNAMIC_REAL] = np.vstack(
-                    [data[FieldName.FEAT_DYNAMIC_REAL] for data in dataset],
+                    [
+                        data[FieldName.FEAT_DYNAMIC_REAL]
+                        for data in entries_at_test_date
+                    ],
                 )
             grouped_data = self._restrict_max_dimensionality(grouped_data)
             grouped_data[FieldName.START] = self.first_timestamp
