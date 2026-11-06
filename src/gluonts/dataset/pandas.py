@@ -112,11 +112,13 @@ class PandasDataset:
         self._data_entries = StarMap(self._pair_to_dataentry, pairs)
 
         if self.freq is None:
-            assert (
-                self.timestamp is None
-            ), "You need to provide `freq` along with `timestamp`"
+            assert self.timestamp is None, (
+                "You need to provide `freq` along with `timestamp`"
+            )
 
             self.freq = infer_freq(first(pairs)[1].index)
+        else:
+            self.freq = to_period_freq(self.freq)
 
         static_features = maybe.unwrap_or_else(static_features, pd.DataFrame)
 
@@ -331,18 +333,58 @@ def pair_with_item_id(obj: Union[tuple, pd.DataFrame, pd.Series]):
     raise ValueError("input must be a pair, or a pandas Series or DataFrame.")
 
 
+def to_period_freq(freq: Any) -> str:
+    """
+    Convert a frequency specification (such as year/month/quarter start frequencies
+    like 'YS', 'MS', 'QS', 'AS' or pandas 2.2+ end frequencies like 'YE', 'ME', 'QE')
+    to a frequency string compatible with Period and PeriodIndex.
+    """
+    if hasattr(freq, "freqstr"):
+        freq = freq.freqstr
+    elif hasattr(freq, "rule_code"):
+        freq = freq.rule_code
+    freq_str = str(freq)
+
+    try:
+        offset = pd.tseries.frequencies.to_offset(freq)
+        if offset is None:
+            return freq_str
+    except (ValueError, TypeError, AttributeError):
+        return freq_str
+
+    code = getattr(offset, "rule_code", offset.name)
+    n = getattr(offset, "n", 1)
+    prefix = f"{n}" if n > 1 else ""
+    base_code = code.split("-")[0]
+    suffix = code[len(base_code) :]
+    period_map = {
+        "YE": "Y",
+        "YS": "Y",
+        "Y": "Y",
+        "A": "Y",
+        "AS": "Y",
+        "ME": "M",
+        "MS": "M",
+        "M": "M",
+        "QE": "Q",
+        "QS": "Q",
+        "Q": "Q",
+    }
+    if base_code in period_map:
+        mapped_base = period_map[base_code]
+        return f"{prefix}{mapped_base}{suffix}"
+    return f"{prefix}{code}"
+
+
 def infer_freq(index: pd.Index) -> str:
     if isinstance(index, pd.PeriodIndex):
-        return index.freqstr
+        return to_period_freq(index.freqstr)
 
     freq = pd.infer_freq(index)
-    # pandas likes to infer the `start of x` frequency, however when doing
-    # df.to_period("<x>S"), it fails, so we avoid using it. It's enough to
-    # remove the trailing S, e.g `MS` -> `M
-    if len(freq) > 1 and freq.endswith("S"):
-        return freq[:-1]
+    if freq is None:
+        return freq
 
-    return freq
+    return to_period_freq(freq)
 
 
 def is_uniform(index: pd.PeriodIndex) -> bool:
