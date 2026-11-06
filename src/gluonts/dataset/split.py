@@ -113,11 +113,9 @@ def to_positive_slice(slice_: slice, length: int) -> slice:
     """
     start, stop = slice_.start, slice_.stop
     if start is not None and start < 0:
-        start += length
-        assert start >= 0
+        start = max(0, start + length)
     if stop is not None and stop < 0:
-        stop += length
-        assert stop >= 0
+        stop = max(0, stop + length)
     return slice(start, stop, slice_.step)
 
 
@@ -253,8 +251,11 @@ class AbstractBaseSplitter(ABC):
                 )
 
                 if max_history is not None:
+                    history = min(
+                        max_history, test[0][FieldName.TARGET].shape[-1]
+                    )
                     yield (
-                        slice_data_entry(test[0], slice(-max_history, None)),
+                        slice_data_entry(test[0], slice(-history, None)),
                         test[1],
                     )
                 else:

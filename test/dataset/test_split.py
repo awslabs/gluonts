@@ -451,3 +451,54 @@ def test_invalid_offset(dataset, date, offset, windows, distance):
             )
         )
     assert exp_msg in str(excinfo.value)
+
+
+@pytest.mark.parametrize("max_history", [10, 100, 1000])
+def test_max_history_larger_than_available_observations(max_history):
+    entry = {
+        "start": pd.Period("2024-01-01", freq="D"),
+        "target": np.arange(10),
+    }
+    _, template = split([entry], offset=5)
+    inputs, labels = next(
+        iter(
+            template.generate_instances(
+                prediction_length=2,
+                max_history=max_history,
+            )
+        )
+    )
+    assert np.array_equal(inputs["target"], np.arange(5))
+    assert np.array_equal(labels["target"], np.array([5, 6]))
+    assert inputs["start"] == pd.Period("2024-01-01", freq="D")
+
+
+def test_max_history_with_multivariate_and_covariates():
+    entry = {
+        "start": pd.Period("2024-01-01", freq="D"),
+        "target": np.arange(20).reshape(2, 10),
+        "feat_dynamic_real": np.arange(20).reshape(2, 10),
+        "past_feat_dynamic_real": np.arange(10).reshape(1, 10),
+    }
+    _, template = split([entry], offset=5)
+    inputs, labels = next(
+        iter(
+            template.generate_instances(
+                prediction_length=2,
+                max_history=50,
+            )
+        )
+    )
+    assert inputs["target"].shape == (2, 5)
+    assert labels["target"].shape == (2, 2)
+    assert inputs["feat_dynamic_real"].shape == (2, 7)  # 5 + prediction_length
+    assert inputs["past_feat_dynamic_real"].shape == (1, 5)
+    assert inputs["start"] == pd.Period("2024-01-01", freq="D")
+
+
+def test_to_positive_slice_large_negative_bounds():
+    from gluonts.dataset.split import to_positive_slice
+
+    assert to_positive_slice(slice(-100, None), 10) == slice(0, None, None)
+    assert to_positive_slice(slice(-100, -50), 10) == slice(0, 0, None)
+    assert to_positive_slice(slice(-5, -2), 10) == slice(5, 8, None)
