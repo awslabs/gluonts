@@ -23,6 +23,12 @@ logger = logging.getLogger(__name__)
 DEFAULT_SEASONALITIES = {
     "S": 3600,  # 1 hour
     "s": 3600,  # 1 hour
+    "L": 1000,  # 1 second
+    "ms": 1000,  # 1 second
+    "U": 1000,  # 1 millisecond
+    "us": 1000,  # 1 millisecond
+    "N": 1000,  # 1 microsecond
+    "ns": 1000,  # 1 microsecond
     "T": 1440,  # 1 day
     "min": 1440,  # 1 day
     "H": 24,  # 1 day

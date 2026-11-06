@@ -244,6 +244,30 @@ def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
             day_of_month,
             day_of_year,
         ],
+        offsets.Milli: [
+            second_of_minute,
+            minute_of_hour,
+            hour_of_day,
+            day_of_week,
+            day_of_month,
+            day_of_year,
+        ],
+        offsets.Micro: [
+            second_of_minute,
+            minute_of_hour,
+            hour_of_day,
+            day_of_week,
+            day_of_month,
+            day_of_year,
+        ],
+        offsets.Nano: [
+            second_of_minute,
+            minute_of_hour,
+            hour_of_day,
+            day_of_week,
+            day_of_month,
+            day_of_year,
+        ],
     }
 
     offset = to_offset(freq_str)
