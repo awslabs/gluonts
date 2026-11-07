@@ -30,6 +30,14 @@ def calculate_seasonal_error(
 
     where m is the seasonal frequency. See [HA21]_ for more details.
     """
+    past_data = np.squeeze(past_data)
+    if past_data.ndim == 0:
+        past_data = np.atleast_1d(past_data)
+
+    assert (
+        past_data.ndim == 1
+    ), f"calculate_seasonal_error expects a 1-dimensional array, but got shape {past_data.shape}."
+
     # Check if the length of the time series is larger than the seasonal
     # frequency
     if not seasonality:

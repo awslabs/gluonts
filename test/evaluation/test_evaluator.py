@@ -1107,3 +1107,55 @@ def test_aggregate_valid():
         aggregation_strategy=aggregate_valid, num_workers=None
     )
     agg_metrics, item_metrics = evaluator(series, forecasts)
+
+
+def test_univariate_assertion_multivariate_timeseries():
+    evaluator = Evaluator(seasonality=1)
+    time_series = pd.DataFrame(
+        {"a": [1.0, 2.0, 3.0], "b": [4.0, 5.0, 6.0]},
+        index=pd.period_range("2023-01-01", periods=3, freq="h"),
+    )
+    forecast = SampleForecast(
+        samples=np.ones((10, 1)),
+        start_date=pd.Period("2023-01-03", freq="h"),
+    )
+    with pytest.raises(
+        AssertionError,
+        match="Evaluator is designed for univariate time series",
+    ):
+        evaluator.get_metrics_per_ts(time_series, forecast)
+
+
+def test_univariate_assertion_multivariate_forecast():
+    evaluator = Evaluator(seasonality=1)
+    time_series = pd.Series(
+        [1.0, 2.0, 3.0],
+        index=pd.period_range("2023-01-01", periods=3, freq="h"),
+    )
+    # multivariate forecast with target_dim = 2 (samples, prediction_length, target_dim)
+    forecast = SampleForecast(
+        samples=np.ones((10, 1, 2)),
+        start_date=pd.Period("2023-01-03", freq="h"),
+    )
+    with pytest.raises(
+        AssertionError, match="Evaluator is designed for univariate forecasts"
+    ):
+        evaluator.get_metrics_per_ts(time_series, forecast)
+
+
+def test_multivariate_evaluator_get_metrics_per_ts_assertion():
+    # Issue #2494: calling get_metrics_per_ts directly on MultivariateEvaluator with multivariate inputs
+    evaluator = MultivariateEvaluator(seasonality=1)
+    time_series = pd.DataFrame(
+        {"dim0": [1.0, 2.0, 3.0], "dim1": [4.0, 5.0, 6.0]},
+        index=pd.period_range("2023-01-01", periods=3, freq="h"),
+    )
+    forecast = QuantileForecast(
+        forecast_arrays=np.ones((3, 1, 2)),
+        forecast_keys=["0.1", "0.5", "0.9"],
+        start_date=pd.Period("2023-01-03", freq="h"),
+    )
+    with pytest.raises(
+        AssertionError, match="Evaluator is designed for univariate"
+    ):
+        evaluator.get_metrics_per_ts(time_series, forecast)

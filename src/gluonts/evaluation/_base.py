@@ -398,6 +398,36 @@ class Evaluator:
     def get_metrics_per_ts(
         self, time_series: Union[pd.Series, pd.DataFrame], forecast: Forecast
     ) -> Mapping[str, Union[float, str, None, np.ma.core.MaskedConstant]]:
+        if isinstance(time_series, pd.DataFrame):
+            assert time_series.shape[1] <= 1, (
+                f"Evaluator is designed for univariate time series, but got "
+                f"time series with {time_series.shape[1]} columns. "
+                "Use MultivariateEvaluator for multivariate time series."
+            )
+
+        try:
+            forecast_dim = forecast.dim()
+        except NotImplementedError:
+            forecast_dim = None
+
+        if forecast_dim is not None:
+            assert forecast_dim == 1, (
+                f"Evaluator is designed for univariate forecasts, but got "
+                f"forecast with dim={forecast_dim}. "
+                "Use MultivariateEvaluator for multivariate forecasts."
+            )
+        else:
+            try:
+                median_val = forecast.quantile(0.5)
+                if hasattr(median_val, "ndim") and median_val.ndim > 1:
+                    assert median_val.shape[-1] <= 1, (
+                        f"Evaluator is designed for univariate forecasts, but got "
+                        f"forecast with shape {median_val.shape}. "
+                        "Use MultivariateEvaluator for multivariate forecasts."
+                    )
+            except Exception:
+                pass
+
         if not validate_forecast(forecast, self.quantiles):
             if self.allow_nan_forecast:
                 logging.warning(

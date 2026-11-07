@@ -202,3 +202,12 @@ def test_seasonal_error(past_data, seasonality, expected):
         ),
         expected,
     )
+
+
+def test_seasonal_error_multidimensional_assertion():
+    past_data_2d = np.ones((5, 10))
+    with pytest.raises(
+        AssertionError,
+        match="calculate_seasonal_error expects a 1-dimensional array",
+    ):
+        calculate_seasonal_error(past_data=past_data_2d, seasonality=1)
