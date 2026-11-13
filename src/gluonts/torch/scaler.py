@@ -164,11 +164,9 @@ class StdScaler(Scaler):
             data.shape == weights.shape
         ), "data and weights must have same shape"
         with torch.no_grad():
-            denominator = weights.sum(self.dim, keepdim=self.keepdim)
+            denominator = weights.sum(self.dim, keepdim=True)
             denominator = denominator.clamp_min(1.0)
-            loc = (data * weights).sum(
-                self.dim, keepdim=self.keepdim
-            ) / denominator
+            loc = (data * weights).sum(self.dim, keepdim=True) / denominator
 
             # Cast to float64 before squaring so that large values (e.g. ~1e20)
             # don't overflow float32 during the variance computation.
@@ -176,7 +174,11 @@ class StdScaler(Scaler):
             # |x - mean| > ~1.8e19. Taking sqrt in float64 first gives a
             # finite std that fits back into float32.
             variance = ((data.double() - loc.double()).pow(2) * weights).sum(
-                self.dim, keepdim=self.keepdim
+                self.dim, keepdim=True
             ) / denominator
             scale = torch.sqrt(variance + self.minimum_scale).to(data.dtype)
-            return (data - loc) / scale, loc, scale
+            scaled_data = (data - loc) / scale
+            if not self.keepdim:
+                loc = loc.squeeze(dim=self.dim)
+                scale = scale.squeeze(dim=self.dim)
+            return scaled_data, loc, scale

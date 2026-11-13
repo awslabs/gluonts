@@ -214,3 +214,82 @@ def test_stdscaler_no_overflow_large_values():
     assert torch.all(
         torch.isfinite(scaled)
     ), "scaled output must be finite for large-valued inputs"
+
+
+@pytest.mark.parametrize("keepdim", [False, True])
+@pytest.mark.parametrize("dim", [0, 1, -1])
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_stdscaler_reduction_dimension(keepdim, dim, dtype):
+    # Observed values are [1, 5] and [10, 18]: means 3 and 14,
+    # population variances 4 and 16. The middle values are unobserved.
+    data = torch.tensor([[1.0, 3.0, 5.0], [10.0, 14.0, 18.0]], dtype=dtype)
+    weights = torch.tensor([[1.0, 0.0, 1.0], [1.0, 0.0, 1.0]], dtype=dtype)
+    expected_loc = torch.tensor([3.0, 14.0], dtype=dtype)
+    expected_scale = torch.tensor(
+        [4.0 + 1e-5, 16.0 + 1e-5], dtype=dtype
+    ).sqrt()
+    expected_scaled = torch.tensor(
+        [[-2.0, 0.0, 2.0], [-4.0, 0.0, 4.0]], dtype=dtype
+    )
+    expected_scaled = expected_scaled / expected_scale[:, None]
+    if dim == 0:
+        data, weights = data.T, weights.T
+        expected_scaled = expected_scaled.T
+    if keepdim:
+        expected_loc = expected_loc.unsqueeze(dim)
+        expected_scale = expected_scale.unsqueeze(dim)
+
+    scaled, loc, scale = scaler.StdScaler(dim=dim, keepdim=keepdim)(
+        data, weights
+    )
+
+    torch.testing.assert_close(loc, expected_loc)
+    torch.testing.assert_close(scale, expected_scale)
+    torch.testing.assert_close(scaled, expected_scaled)
+
+
+def test_stdscaler_square_input():
+    # Equal batch and time sizes used to broadcast across the wrong axis
+    # without raising, silently changing both the variance and scaled data.
+    data = torch.tensor([[1.0, 3.0], [10.0, 14.0]])
+    expected_scale = torch.tensor([1.0 + 1e-5, 4.0 + 1e-5]).sqrt()
+    scaled, loc, scale = scaler.StdScaler()(data, torch.ones_like(data))
+    torch.testing.assert_close(loc, torch.tensor([2.0, 12.0]))
+    torch.testing.assert_close(scale, expected_scale)
+    torch.testing.assert_close(
+        scaled,
+        torch.tensor([[-1.0, 1.0], [-2.0, 2.0]]) / expected_scale[:, None],
+    )
+
+
+@pytest.mark.parametrize("keepdim", [False, True])
+@pytest.mark.parametrize("dim", [1, -2])
+def test_stdscaler_multivariate(keepdim, dim):
+    data = torch.tensor(
+        [
+            [[1.0, 11.0], [3.0, 13.0], [5.0, 15.0]],
+            [[10.0, 20.0], [14.0, 24.0], [18.0, 28.0]],
+        ]
+    )
+    expected_loc = torch.tensor([[3.0, 13.0], [14.0, 24.0]])
+    expected_scale = torch.tensor(
+        [[8.0 / 3.0 + 1e-5] * 2, [32.0 / 3.0 + 1e-5] * 2]
+    ).sqrt()
+    expected_scaled = (
+        torch.tensor(
+            [
+                [[-2.0, -2.0], [0.0, 0.0], [2.0, 2.0]],
+                [[-4.0, -4.0], [0.0, 0.0], [4.0, 4.0]],
+            ]
+        )
+        / expected_scale[:, None, :]
+    )
+    scaled, loc, scale = scaler.StdScaler(dim=dim, keepdim=keepdim)(
+        data, torch.ones_like(data)
+    )
+    if keepdim:
+        expected_loc = expected_loc.unsqueeze(1)
+        expected_scale = expected_scale.unsqueeze(1)
+    torch.testing.assert_close(loc, expected_loc)
+    torch.testing.assert_close(scale, expected_scale)
+    torch.testing.assert_close(scaled, expected_scaled)
