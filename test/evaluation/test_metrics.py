@@ -57,7 +57,7 @@ CONSTANT = np.array([0.4] * 5)
             ZEROES,
             [
                 (mase, 0.2 / 10e-10, {"seasonal_error": 10e-10}),
-                (mase, np.inf, {"seasonal_error": 0.0}),
+                (mase, np.nan, {"seasonal_error": 0.0}),
                 (mse, 0.06, {}),
                 (abs_error, 1.0, {}),
                 (quantile_loss, 0.2, {"q": 0.1}),
@@ -161,7 +161,7 @@ def test_target_metrics(target, metric, expected):
 @pytest.mark.parametrize(
     "target, lower_quantile, upper_quantile, seasonal_error, alpha, expected",
     [
-        (LINEAR, ZEROES, CONSTANT, 0.0, 0.05, np.inf),
+        (LINEAR, ZEROES, CONSTANT, 0.0, 0.05, np.nan),
         (LINEAR, ZEROES, CONSTANT, 1.0, 0.05, 0.4),
         (LINEAR, ZEROES, CONSTANT, 0.01, 0.05, 40.0),
         (ZEROES, ZEROES, ZEROES, 0.0, 0.05, np.nan),
