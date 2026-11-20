@@ -635,18 +635,16 @@ def trim_nans(xs, trim="fb"):
 
     trim = trim.lower()
 
-    start = None
-    end = None
+    start = 0
+    end = len(xs)
 
     if "f" in trim:
-        for start, val in enumerate(xs):
-            if not math.isnan(val):
-                break
+        while start < end and math.isnan(xs[start]):
+            start += 1
 
     if "b" in trim:
-        for end in range(len(xs), -1, -1):
-            if not math.isnan(xs[end - 1]):
-                break
+        while end > start and math.isnan(xs[end - 1]):
+            end -= 1
 
     return xs[start:end]
 
