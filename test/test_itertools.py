@@ -43,7 +43,27 @@ from gluonts.itertools import (
     Filter,
     join_items,
     RandomYield,
+    trim_nans,
 )
+
+
+@pytest.mark.parametrize("container", [list, np.array])
+@pytest.mark.parametrize("trim", ["f", "b", "fb", "FB", ""])
+@pytest.mark.parametrize(
+    "data",
+    [[], [np.nan], [np.nan, np.nan], [1.0], [np.nan, 1.0, np.nan]],
+)
+def test_trim_nans(data, trim, container):
+    expected = list(data)
+    if "f" in trim.lower():
+        while expected and np.isnan(expected[0]):
+            expected.pop(0)
+    if "b" in trim.lower():
+        while expected and np.isnan(expected[-1]):
+            expected.pop()
+    result = trim_nans(container(data), trim=trim)
+    assert isinstance(result, container if container is list else np.ndarray)
+    assert_equal(result, expected)
 
 
 @pytest.mark.parametrize(
