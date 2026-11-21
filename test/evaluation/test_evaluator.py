@@ -25,6 +25,25 @@ from gluonts.model.forecast import QuantileForecast, SampleForecast
 QUANTILES = [str(q / 10.0) for q in range(1, 10)]
 
 
+def test_rmse_per_series():
+    dates = pd.period_range("2020-01-01", periods=4, freq="D")
+    series = [
+        pd.Series([1, 2, 2, 2], index=dates),
+        pd.Series([4, 8, 8, 8], index=dates),
+    ]
+    forecasts = [
+        SampleForecast(samples=np.array([[2.0, 2.0]]), start_date=dates[2])
+        for _ in series
+    ]
+
+    totals, items = Evaluator(num_workers=0)(series, forecasts)
+
+    np.testing.assert_allclose(items["RMSE"], [0.0, 6.0])
+    np.testing.assert_allclose(items["NRMSE"], [0.0, 0.75])
+    assert totals["RMSE"] == pytest.approx(np.sqrt(18.0))
+    assert totals["NRMSE"] == pytest.approx(np.sqrt(18.0) / 5.0)
+
+
 def data_iterator(ts):
     """
     :param ts: list of pd.Series or pd.DataFrame

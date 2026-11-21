@@ -379,15 +379,24 @@ class Evaluator:
         median_fcst,
         seasonal_error,
     ) -> Dict[str, Union[float, str, None]]:
+        mean_squared_error = (
+            mse(pred_target, mean_fcst) if mean_fcst is not None else None
+        )
+        rmse = (
+            np.sqrt(mean_squared_error)
+            if mean_squared_error is not None
+            else None
+        )
+        target_mean = abs_target_mean(pred_target)
         return {
             "item_id": forecast.item_id,
             "forecast_start": forecast.start_date,
-            "MSE": (
-                mse(pred_target, mean_fcst) if mean_fcst is not None else None
-            ),
+            "MSE": mean_squared_error,
+            "RMSE": rmse,
+            "NRMSE": rmse / target_mean if rmse is not None else None,
             "abs_error": abs_error(pred_target, median_fcst),
             "abs_target_sum": abs_target_sum(pred_target),
-            "abs_target_mean": abs_target_mean(pred_target),
+            "abs_target_mean": target_mean,
             "seasonal_error": seasonal_error,
             "MASE": mase(pred_target, median_fcst, seasonal_error),
             "MAPE": mape(pred_target, median_fcst),
