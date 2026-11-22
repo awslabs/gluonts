@@ -625,9 +625,13 @@ class QuantileForecast(Forecast):
 
         inference_quantile = Quantile.parse(inference_quantile).value
 
-        if len(quantiles) < 2 or inference_quantile in quantiles:
-            q_str = Quantile.parse(inference_quantile).name
-            return self._forecast_dict.get(q_str, self._nan_out)
+        if inference_quantile in quantiles:
+            # Look up by level, not by name: keys such as "0.50" are kept as
+            # given, so the name built from the float ("0.5") may not match.
+            return quantile_predictions[quantiles.index(inference_quantile)]
+
+        if len(quantiles) < 2:
+            return self._nan_out
 
         exp_tail_approximation = ExponentialTailApproximation(
             quantiles, quantile_predictions
