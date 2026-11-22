@@ -93,6 +93,25 @@ def test_mean_only_forecast():
 
 
 @pytest.mark.parametrize(
+    "keys",
+    [["0.1", "0.5", "0.9"], ["0.10", "0.50", "0.90"], ["p10", "p50", "p90"]],
+)
+def test_quantile_forecast_stored_levels(keys):
+    forecast = QuantileForecast(
+        forecast_arrays=np.array([[1.0] * 3, [5.0] * 3, [9.0] * 3]),
+        start_date=pd.Period("2022-03-04 00", freq="H"),
+        forecast_keys=keys,
+    )
+
+    for level, expected in [(0.1, 1.0), (0.5, 5.0), (0.9, 9.0)]:
+        assert np.equal(forecast.quantile(level), expected).all()
+        assert np.equal(forecast.quantile(str(level)), expected).all()
+    assert np.equal(forecast.quantile("0.50"), 5.0).all()
+    assert np.equal(forecast.median, 5.0).all()
+    assert np.equal(forecast.mean, 5.0).all()
+
+
+@pytest.mark.parametrize(
     "forecast, exp_index",
     [
         (
