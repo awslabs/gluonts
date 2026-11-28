@@ -46,6 +46,12 @@ def get_seasonality(freq: str, seasonalities=DEFAULT_SEASONALITIES) -> int:
     """
     offset = pd.tseries.frequencies.to_offset(freq)
 
+    if offset.n == 0:
+        logger.warning(
+            f"Frequency {freq!r} has multiple 0; falling back to seasonality 1."
+        )
+        return 1
+
     base_seasonality = seasonalities.get(norm_freq_str(offset.name), 1)
 
     seasonality, remainder = divmod(base_seasonality, offset.n)
